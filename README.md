@@ -3,6 +3,10 @@
 This project aims to develop an ErrorProne checker for common issues in Java
 code intended for cross-platform uses.
 
+## Disclaimer
+
+This is not an officially supported Google product.
+
 ## Source Code Headers
 
 Every file containing source code must include copyright and license
