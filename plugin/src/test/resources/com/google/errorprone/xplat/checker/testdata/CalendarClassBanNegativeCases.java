@@ -4,12 +4,23 @@ import com.google.errorprone.xplat.checker.AllowLegacyTime;
 
 import java.util.Calendar;
 
-@AllowLegacyTime
 public class CalendarClassBanNegativeCases {
 
-  public static void main(String[] args) {
-    Calendar cal = Calendar.getInstance();
+  @AllowLegacyTime
+  private Calendar cal;
 
+  public CalendarClassBanNegativeCases(@AllowLegacyTime Calendar cal) {
+    this.cal = cal;
+  }
+
+  @AllowLegacyTime
+  public Calendar returnCalendar() {
+    return Calendar.getInstance();
+  }
+
+  public void calParam(@AllowLegacyTime Calendar cal) {
+    @AllowLegacyTime
+    Calendar test = Calendar.getInstance();
   }
 
 
