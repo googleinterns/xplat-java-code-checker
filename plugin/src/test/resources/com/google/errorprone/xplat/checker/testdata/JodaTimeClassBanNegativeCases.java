@@ -10,21 +10,21 @@ public class JodaTimeClassBanNegativeCases {
 
   public class aClass {
 
-    //test allowed field
+    // test allowed field
     private DateTime time;
 
-    //test allowed constructor
+    // test allowed constructor
     public aClass(DateTime time) {
       this.time = time;
     }
 
-    //test allowed method
+    // test allowed method
     private DateTime getTime(DateTime time) {
       return time;
     }
   }
 
-  //allowed function
+  // allowed function
   private static DateTime goodLocalDateTimeUse() {
     LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);
     return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(), ldt.getHourOfDay(),
@@ -35,15 +35,15 @@ public class JodaTimeClassBanNegativeCases {
   }
 
   public static void main(String[] args) {
-    //test allowed new
+    // test allowed new
     DateTime dt = new DateTime();
 
     DateTime dt2 = goodLocalDateTimeUse();
 
-    //test allowed method call
+    // test allowed method call
     dt2.dayOfYear();
 
-    //test allowed local var
+    // test allowed local var
     DateTime dt3;
 
     System.out.println(dt.toString());

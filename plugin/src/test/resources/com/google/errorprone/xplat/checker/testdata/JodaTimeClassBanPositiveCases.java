@@ -22,19 +22,19 @@ import org.joda.time.tz.FixedDateTimeZone;
 public class JodaTimeClassBanPositiveCases {
 
   public void mutableDate() {
-    //test constructor from banned class
+    // test constructor from banned class
     // BUG: Diagnostic contains: Use of org.joda.time.MutableDateTime
     MutableDateTime dateTime = new MutableDateTime();
 
-    //test local var from banned class
+    // test local var from banned class
     // BUG: Diagnostic contains: Use of org.joda.time.MutableDateTime
     MutableDateTime time;
 
-    //test method call from banned class
+    // test method call from banned class
     // BUG: Diagnostic contains: Use of org.joda.time.MutableDateTime
     dateTime.add(2);
 
-    //test method call on banned instantiated class
+    // test method call on banned instantiated class
     // BUG: Diagnostic contains: Use of org.joda.time.MutableDateTime
     System.out.println(dateTime.toString());
 
@@ -43,19 +43,19 @@ public class JodaTimeClassBanPositiveCases {
   public void chrono() {
     DateTime dt = new DateTime();
 
-    //test constructor from banned package
+    // test constructor from banned package
     // BUG: Diagnostic contains: Use of org.joda.time.chrono
     BuddhistChronology chr = BuddhistChronology.getInstance();
 
-    //test method from banned package
+    // test method from banned package
     // BUG: Diagnostic contains: Use of org.joda.time.chrono
     chr.toString();
 
-    //test local var from banned package
+    // test local var from banned package
     // BUG: Diagnostic contains: Use of org.joda.time.chrono
     BuddhistChronology ch2;
 
-    //test method that returns banned type
+    // test method that returns banned type
     // BUG: Diagnostic contains: Use of withChronology(org.joda.time.Chronology)
     DateTime dtBuddhist = dt.withChronology(BuddhistChronology.getInstance());
 
@@ -63,42 +63,42 @@ public class JodaTimeClassBanPositiveCases {
   }
 
   public void tzTime() {
-    //test constructor from banned package
+    // test constructor from banned package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
     FixedDateTimeZone time = new FixedDateTimeZone("1", "1", 1, 1);
 
-    //test method from banned package
+    // test method from banned package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
     time.getStandardOffset(1);
   }
 
-  //test method that returns banned class
+  // test method that returns banned class
   // BUG: Diagnostic contains: Use of org.joda.time.DateMidnight
   private DateMidnight doNotUseDateMidnight() {
 
-    //test method from allowed class that returns banned type
+    // test method from allowed class that returns banned type
     // BUG: Diagnostic contains: Use of toDateMidnight() is not allowed, as org.joda.time.DateMidnight
     return goodLocalDateTimeUse().toDateMidnight();
   }
 
   private void implicitBannedClassUse() {
-    //test method from allowed class that returns banned type
+    // test method from allowed class that returns banned type
     // BUG: Diagnostic contains: Use of toYearMonthDay() is not allowed, as org.joda.time.YearMonthDay
     goodLocalDateTimeUse().toYearMonthDay();
   }
 
-  //test method declaration that has a parameter with a banned type
+  // test method declaration that has a parameter with a banned type
   // BUG: Diagnostic contains: Use of org.joda.time.Chronology
   private DateTime bannedParameterTypes(String s, Chronology c) {
     System.out.println(s);
 
-    //tests a method that has an invalid paramater
+    // tests a method that has an invalid paramater
     // BUG: Diagnostic contains: Use of toDateTime(org.joda.time.Chronology)
     return goodLocalDateTimeUse().toDateTime(BuddhistChronology.getInstance());
   }
 
   private LocalDateTime badConstructor() {
-    //tests the use of a constructor that has arguments that are banned
+    // tests the use of a constructor that has arguments that are banned
     // BUG: Diagnostic contains: Use of this constructor (LocalDateTime(long,org.joda.time.Chronology))
     return new LocalDateTime(2, BuddhistChronology.getInstance());
   }
@@ -125,13 +125,13 @@ public class JodaTimeClassBanPositiveCases {
     // BUG: Diagnostic contains: Use of org.joda.time.Chronology
     private Chronology chrono;
 
-    //tests a created method that has a parameter with a banned type
+    // tests a created method that has a parameter with a banned type
     // BUG: Diagnostic contains: Use of org.joda.time.Chronology
     public Illegial(Chronology chrono) {
       this.chrono = chrono;
     }
 
-    //tests a created method that returns a banned type
+    // tests a created method that returns a banned type
     // BUG: Diagnostic contains: Use of org.joda.time.Chronology
     private Chronology returnChrono() {
       return this.chrono;
@@ -140,17 +140,17 @@ public class JodaTimeClassBanPositiveCases {
 
   private class Illegial2 {
 
-    //tests a banned field from a banned package
+    // tests a banned field from a banned package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
     private FixedDateTimeZone time;
 
-    //tests a created method that has a parameter with a banned type from a package
+    // tests a created method that has a parameter with a banned type from a package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
     public Illegial2(FixedDateTimeZone time) {
       this.time = time;
     }
 
-    //tests a created method that returns a banned type from a banned package
+    // tests a created method that returns a banned type from a banned package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
     private FixedDateTimeZone returnChrono() {
       return this.time;
@@ -161,7 +161,7 @@ public class JodaTimeClassBanPositiveCases {
   public static void main(String[] args) {
     JodaTimeClassBanPositiveCases m = new JodaTimeClassBanPositiveCases();
 
-    //tests a banned class
+    // tests a banned class
     // BUG: Diagnostic contains: Use of org.joda.time.DateMidnight
     DateMidnight dm = m.doNotUseDateMidnight();
 
