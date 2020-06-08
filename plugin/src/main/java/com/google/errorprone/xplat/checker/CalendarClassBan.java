@@ -14,7 +14,10 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
-
+/**
+ * Checks for usage of java.util.Calendar in Variables, Methods and Parameters. Can be overridden
+ * with the @AllowLegacyTime annotation.
+ */
 @BugPattern(
     name = "JodaTimeClassBan",
     summary = "java.util.Calendar ban - override with @AllowLegacyTime.",
@@ -24,8 +27,7 @@ import com.sun.source.tree.VariableTree;
             + "@AllowLegacyTime annotation will allowed to override the error.",
     severity = ERROR)
 public class CalendarClassBan extends BugChecker implements MethodTreeMatcher, VariableTreeMatcher {
-
-
+  
   private static final String CALENDAR_CLASS = "java.util.Calendar";
 
   private static final Matcher<MethodTree> METHOD_MATCHER =
