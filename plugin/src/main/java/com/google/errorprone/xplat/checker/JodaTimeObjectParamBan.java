@@ -28,8 +28,8 @@ import java.util.List;
     summary = "Bans the usage of Joda-Time methods and constructors that have an Object parameter.",
     explanation =
         "The usage of Joda-Time methods and constructors that have an Object parameter are"
-            + " banned from cross platform development due to the dangers of passing null as the "
-            + "parameter. If the parameter is a boxed long, it is allowed to be used.",
+            + " banned from cross platform development due to the dangers of passing null as the"
+            + " parameter. If the parameter is a boxed long, it is allowed to be used.",
     severity = ERROR)
 public class JodaTimeObjectParamBan extends BugChecker implements MethodInvocationTreeMatcher,
     NewClassTreeMatcher {
@@ -44,6 +44,7 @@ public class JodaTimeObjectParamBan extends BugChecker implements MethodInvocati
 
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
+
     MethodSymbol symbol = ASTHelpers.getSymbol(tree);
 
     if (symbol != null) {
@@ -70,7 +71,6 @@ public class JodaTimeObjectParamBan extends BugChecker implements MethodInvocati
     MethodSymbol symbol = ASTHelpers.getSymbol(tree);
 
     if (symbol != null) {
-
       List<VarSymbol> argTypes = symbol.params();
 
       for (int i = 0; i < argTypes.size(); i++) {

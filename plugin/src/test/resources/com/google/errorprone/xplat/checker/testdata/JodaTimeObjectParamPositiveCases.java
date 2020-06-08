@@ -25,6 +25,10 @@ public class JodaTimeObjectParamPositiveCases {
 
     // testing method with object param (not boxed long)
     // BUG: Diagnostic contains: Use of methods that have java.lang.Object
+    time2.equals(1L);
+
+    // testing method with object param (not boxed long)
+    // BUG: Diagnostic contains: Use of methods that have java.lang.Object
     time2.equals(new Double(2.0));
 
     // testing method with object param (not boxed long)
