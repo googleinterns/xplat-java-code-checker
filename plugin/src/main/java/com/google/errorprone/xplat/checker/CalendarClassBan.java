@@ -23,8 +23,8 @@ import com.sun.source.tree.VariableTree;
     summary = "java.util.Calendar ban - override with @AllowLegacyTime.",
     explanation =
         "The usage of java.util.Calendar is banned from cross platform development due"
-            + " to incompatibilities. If one is sure that they must use it, the "
-            + "@AllowLegacyTime annotation will allowed to override the error.",
+            + " to incompatibilities. If one is sure that they must use it, the"
+            + " @AllowLegacyTime annotation will override the error.",
     severity = ERROR)
 public class CalendarClassBan extends BugChecker implements MethodTreeMatcher, VariableTreeMatcher {
 
