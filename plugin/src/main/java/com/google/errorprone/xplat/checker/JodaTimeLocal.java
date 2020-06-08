@@ -1,0 +1,59 @@
+package com.google.errorprone.xplat.checker;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
+import com.google.errorprone.BugPattern;
+import com.google.errorprone.VisitorState;
+import com.google.errorprone.bugpatterns.BugChecker;
+import com.google.errorprone.bugpatterns.BugChecker.MethodInvocationTreeMatcher;
+import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
+import com.google.errorprone.matchers.Description;
+import com.google.errorprone.matchers.Matcher;
+import com.google.errorprone.matchers.Matchers;
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.NewClassTree;
+
+@BugPattern(
+    name = "JodaTimeLocal",
+    summary = "Bans the usage of toDateTime in some Joda-Time classes.",
+    explanation =
+        "The usage of toDateTime and the timezoned version of Local Joda-Time classes"
+            + "are banned from cross platform development due to incompatibilities."
+            + " A fix using a new DateTime is suggested.",
+    severity = ERROR)
+public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMatcher,
+    NewClassTreeMatcher {
+
+  private static final ImmutableSet<String> CLASS_NAMES =
+      ImmutableSet
+          .of("org.joda.time.LocalDateTime", "org.joda.time.LocalDate", "org.joda.time.LocalTime");
+
+
+  private static final Matcher<ExpressionTree> CONSTRUCTOR_MATCHER =
+      Matchers.allOf(
+          Matchers.anyOf(
+              CLASS_NAMES.stream()
+                  .map(
+                      typeName ->
+                          Matchers.constructor()
+                              .forClass(typeName)
+                              .withParameters("org.joda.time.DateTimeZone"))
+                  .collect(toImmutableList())),
+          // Allow usage by JodaTime itself
+          Matchers.not(Matchers.packageStartsWith("org.joda.time")));
+
+  @Override
+  public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
+    return null;
+  }
+
+  @Override
+  public Description matchNewClass(NewClassTree tree, VisitorState state) {
+
+    return null;
+  }
+}
