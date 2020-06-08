@@ -27,7 +27,7 @@ import com.sun.source.tree.VariableTree;
             + "@AllowLegacyTime annotation will allowed to override the error.",
     severity = ERROR)
 public class CalendarClassBan extends BugChecker implements MethodTreeMatcher, VariableTreeMatcher {
-  
+
   private static final String CALENDAR_CLASS = "java.util.Calendar";
 
   private static final Matcher<MethodTree> METHOD_MATCHER =
@@ -54,7 +54,6 @@ public class CalendarClassBan extends BugChecker implements MethodTreeMatcher, V
 
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
-
     if (METHOD_MATCHER.matches(tree, state)) {
       return message(tree);
     }
