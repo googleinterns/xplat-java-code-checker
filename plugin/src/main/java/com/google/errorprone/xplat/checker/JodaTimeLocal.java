@@ -3,6 +3,8 @@ package com.google.errorprone.xplat.checker;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
+
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
@@ -29,28 +31,27 @@ import com.sun.source.tree.NewClassTree;
 public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMatcher,
     NewClassTreeMatcher {
 
-  private static final ImmutableSet<String> CLASS_NAMES =
-      ImmutableSet
-          .of("org.joda.time.LocalDateTime", "org.joda.time.LocalDate", "org.joda.time.LocalTime");
+  private static final ImmutableMap<String, String> CLASS_NAMES =
+      ImmutableMap
+          .of("org.joda.time.LocalDateTime", "toDateTime",
+              "org.joda.time.LocalDate", "toDateTime",
+              "org.joda.time.LocalTime", "toDateTimeToday");
 
 
   private static final Matcher<ExpressionTree> CONSTRUCTOR_MATCHER =
-      Matchers.allOf(
-          Matchers.anyOf(
-              CLASS_NAMES.stream()
-                  .map(
-                      typeName ->
-                          Matchers.constructor()
-                              .forClass(typeName)
-                              .withParameters("org.joda.time.DateTimeZone"))
-                  .collect(toImmutableList())),
-          // Allow usage by JodaTime itself
-          Matchers.not(Matchers.packageStartsWith("org.joda.time")));
+      Matchers.anyOf(
+          CLASS_NAMES.keySet().stream()
+              .map(
+                  typeName ->
+                      Matchers.constructor()
+                          .forClass(typeName)
+                          .withParameters("org.joda.time.DateTimeZone"))
+              .collect(toImmutableList()));
 
   private static final Matcher<ExpressionTree> METHOD_MATCHER =
       Matchers.allOf(
           Matchers.anyOf(
-              CLASS_NAMES.stream()
+              CLASS_NAMES.keySet().stream()
                   .map(
                       className ->
                           Matchers.instanceMethod()
@@ -61,9 +62,14 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
           Matchers.not(Matchers.packageStartsWith("org.joda.time")));
 
 
+  private Matcher<ExpressionTree> methodMatcher(String key) {
+    return Matchers.instanceMethod().onExactClass(key).named(CLASS_NAMES.get(key));
+  }
+
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
-    if (METHOD_MATCHER.matches(tree, state)) {
+    if (methodMatcher("org.joda.time.LocalDateTime").matches(tree, state)
+        || methodMatcher("org.joda.time.LocalDate").matches(tree, state)) {
 
       ExpressionTree recv = ASTHelpers.getReceiver(tree);
 

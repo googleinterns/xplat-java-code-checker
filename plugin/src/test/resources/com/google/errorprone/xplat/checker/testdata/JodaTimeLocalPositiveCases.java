@@ -16,6 +16,13 @@ public class JodaTimeLocalPositiveCases {
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
 
+  private DateTime badLocalTimeUse() {
+    LocaTime lt = new LocalTime(8, 0, 0, 0);
+    // BUG: Diagnostic contains: The use of toDateTime(org.joda.time.DateTimeZone)
+    return ldt.toDateTime(DateTimeZone.forID("America/New_York"))
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
   private void test() {
     // BUG: Diagnostic contains: The use of LocalDateTime(org.joda.time.DateTimeZone)
     LocalDateTime test1 = new LocalDateTime(DateTimeZone.forID("America/New_York"));
