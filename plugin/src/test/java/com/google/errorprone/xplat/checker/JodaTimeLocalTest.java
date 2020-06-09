@@ -18,7 +18,7 @@ public class JodaTimeLocalTest {
 
   @Before
   public void setup() {
-    compilationHelper = CompilationTestHelper.newInstance(MyCustomCheck.class, getClass());
+    compilationHelper = CompilationTestHelper.newInstance(JodaTimeLocal.class, getClass());
   }
 
   @Test
