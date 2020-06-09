@@ -10,23 +10,23 @@ import org.junit.runners.JUnit4;
  * Unit tests for {@link MyCustomCheck}.
  */
 @RunWith(JUnit4.class)
-public class CalendarClassBanTest {
+public class LegacyTimeBanTest {
 
   private CompilationTestHelper compilationHelper;
 
   @Before
   public void setup() {
-    compilationHelper = CompilationTestHelper.newInstance(CalendarClassBan.class, getClass());
+    compilationHelper = CompilationTestHelper.newInstance(LegacyTimeBan.class, getClass());
   }
 
   @Test
   public void customCheckPositiveCases() {
-    compilationHelper.addSourceFile("CalendarClassBanPositiveCases.java").doTest();
+    compilationHelper.addSourceFile("LegacyTimeBanPositiveCases.java").doTest();
   }
 
   @Test
   public void customCheckNegativeCases() {
-    compilationHelper.addSourceFile("CalendarClassBanNegativeCases.java").doTest();
+    compilationHelper.addSourceFile("LegacyTimeBanNegativeCases.java").doTest();
   }
 
 }
