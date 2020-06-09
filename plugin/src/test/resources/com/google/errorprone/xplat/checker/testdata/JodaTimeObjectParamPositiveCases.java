@@ -10,30 +10,11 @@ public class JodaTimeObjectParamPositiveCases {
     Object ob = null;
 
     // testing constructor with object param (not boxed long)
-    // BUG: Diagnostic contains: Use of constructors that have java.lang.Object
+    // BUG: Diagnostic contains: DateTime(java.lang.Object) is a banned constructor
     DateTime time = new DateTime(ob);
 
-    LocalDateTime time2 = new LocalDateTime();
-
-    // testing method with object param (not boxed long)
-    // BUG: Diagnostic contains: Use of methods that have java.lang.Object
-    time2.equals(ob);
-
-    // testing method with object param (not boxed long)
-    // BUG: Diagnostic contains: Use of methods that have java.lang.Object
-    time2.equals(null);
-
-    // testing method with object param (not boxed long)
-    // BUG: Diagnostic contains: Use of methods that have java.lang.Object
-    time2.equals(1L);
-
-    // testing method with object param (not boxed long)
-    // BUG: Diagnostic contains: Use of methods that have java.lang.Object
-    time2.equals(new Double(2.0));
-
-    // testing method with object param (not boxed long)
-    // BUG: Diagnostic contains: Use of methods that have java.lang.Object
-    time2.equals(new String("Hello"));
+    // BUG: Diagnostic contains: LocalDateTime(java.lang.Object) is a banned constructor
+    LocalDateTime time2 = new LocalDateTime(ob);
 
   }
 }

@@ -7,6 +7,11 @@ import org.joda.time.LocalDateTime;
 
 public class JodaTimeObjectParamNegativeCases {
 
+  Object test;
+
+  JodaTimeObjectParamNegativeCases(Object test) {
+    this.test = test;
+  }
 
   public static void main(String[] args) {
 
@@ -16,10 +21,13 @@ public class JodaTimeObjectParamNegativeCases {
     // constructor with non-object param
     LocalDateTime time2 = new LocalDateTime(2);
 
-    // method with object parameter but using boxed long
+    // constructor that isn't a joda time class
+    JodaTimeObjectParamNegativeCases test1 = new JodaTimeObjectParamNegativeCases(null);
+    
+    // method (not being checked)
     time2.equals(new Long(1));
 
-    // method with non-object param
+    // method (not being checked)
     time.plusYears(1);
 
 

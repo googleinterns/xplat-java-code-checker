@@ -25,60 +25,38 @@ import java.util.List;
  */
 @BugPattern(
     name = "JodaTimeObjectParamBan",
-    summary = "Bans the usage of Joda-Time methods and constructors that have an Object parameter.",
+    summary = "Bans the usage of Joda-Time constructors that have an Object parameter.",
     explanation =
-        "The usage of Joda-Time methods and constructors that have an Object parameter are"
+        "The usage of Joda-Time constructors that have an Object parameter are"
             + " banned from cross platform development due to the dangers of passing null as the"
             + " parameter. If the parameter is a boxed long, it is allowed to be used.",
     severity = ERROR)
-public class JodaTimeObjectParamBan extends BugChecker implements MethodInvocationTreeMatcher,
-    NewClassTreeMatcher {
-
-  private Description message(Tree tree, String type) {
-    return buildDescription(tree)
-        .setMessage(
-            String.format("Use of %s that have java.lang.Object as a parameter"
-                + " are banned unless the parameter is a boxed long.", type))
-        .build();
-  }
-
-  @Override
-  public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
-
-    MethodSymbol symbol = ASTHelpers.getSymbol(tree);
-
-    if (symbol != null) {
-      List<VarSymbol> argTypes = symbol.params();
-
-      for (int i = 0; i < argTypes.size(); i++) {
-        if (argTypes.get(i).asType().toString().equals("java.lang.Object")) {
-          Type argType = ASTHelpers.getType(tree.getArguments().get(i));
-
-          if (!state.getTypes().unboxedType(argType).toString().equals("long")) {
-            return message(tree, "methods");
-          }
-        }
-
-      }
-    }
-
-    return Description.NO_MATCH;
-  }
+public class JodaTimeObjectParamBan extends BugChecker implements NewClassTreeMatcher {
 
   @Override
   public Description matchNewClass(NewClassTree tree, VisitorState state) {
+    Type constructorType = ASTHelpers.getType(tree);
 
-    MethodSymbol symbol = ASTHelpers.getSymbol(tree);
+    if (constructorType != null && constructorType.toString().startsWith("org.joda.time")) {
 
-    if (symbol != null) {
-      List<VarSymbol> argTypes = symbol.params();
+      MethodSymbol symbol = ASTHelpers.getSymbol(tree);
 
-      for (int i = 0; i < argTypes.size(); i++) {
-        if (argTypes.get(i).asType().toString().equals("java.lang.Object")) {
-          Type argType = ASTHelpers.getType(tree.getArguments().get(i));
+      if (symbol != null) {
+        List<VarSymbol> argTypes = symbol.params();
 
-          if (!state.getTypes().unboxedType(argType).toString().equals("long")) {
-            return message(tree, "constructors");
+        for (int i = 0; i < argTypes.size(); i++) {
+          if (argTypes.get(i).asType().toString().equals("java.lang.Object")) {
+            Type argType = ASTHelpers.getType(tree.getArguments().get(i));
+
+            if (!state.getTypes().unboxedType(argType).toString().equals("long")) {
+              return buildDescription(tree)
+                  .setMessage(
+                      String.format(
+                          "%s is a banned constructor, as Joda-Time constructors that have"
+                              + " java.lang.Object as a parameter are banned unless the parameter"
+                              + " is a boxed long.", symbol.toString()))
+                  .build();
+            }
           }
         }
 
