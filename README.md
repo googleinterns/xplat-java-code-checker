@@ -1,5 +1,7 @@
 # Cross-Platform ("Xplat") Java Code Checker
 
+![](https://github.com/googleinterns/xplat-java-code-checker/workflows/Gradle%20build/badge.svg)
+
 This project aims to develop an ErrorProne checker for common issues in Java
 code intended for cross-platform uses.
 
