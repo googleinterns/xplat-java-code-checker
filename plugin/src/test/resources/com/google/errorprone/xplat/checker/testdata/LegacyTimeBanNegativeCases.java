@@ -47,5 +47,9 @@ public class LegacyTimeBanNegativeCases {
     Calendar test = Calendar.getInstance();
   }
 
-
+  // self-documenting annotation
+  public void legacy() {
+    @AllowLegacyTime("Required by legacy API")
+    Calendar local = returnCalendar();
+  }
 }
