@@ -19,8 +19,9 @@ public class JodaTimeLocalNegativeCases {
 
   }
 
-  private void test() {
-    LocalDateTime test1 = new LocalDateTime(1L, DateTimeZone.forID("America/New_York"));
+  private void consTest() {
+    LocalDateTime test1 = new LocalDateTime(1L);
   }
+
 
 }

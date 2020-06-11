@@ -16,16 +16,28 @@ public class JodaTimeLocalPositiveCases {
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
 
-  private DateTime badLocalTimeUse() {
-    LocaTime lt = new LocalTime(8, 0, 0, 0);
-    // BUG: Diagnostic contains: The use of toDateTime(org.joda.time.DateTimeZone)
-    return ldt.toDateTime(DateTimeZone.forID("America/New_York"))
+  private DateTime badLocalDateTimeUse2() {
+    LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);
+    // xBUG: Diagnostic contains: The use of toDateTime()
+    return ldt.toDateTime()
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
 
-  private void test() {
+//  private DateTime badLocalTimeUse() {
+//    LocalTime lt = new LocalTime(8, 0, 0, 0);
+//    // xBUG: Diagnostic contains: The use of toDateTime(org.joda.time.DateTimeZone)
+//    return lt.toDateTime(DateTimeZone.forID("America/New_York"))
+//        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+//  }
+
+  private void consTest() {
     // BUG: Diagnostic contains: The use of LocalDateTime(org.joda.time.DateTimeZone)
     LocalDateTime test1 = new LocalDateTime(DateTimeZone.forID("America/New_York"));
 
+    // BUG: Diagnostic contains: The use of LocalDateTime(long,org.joda.time.DateTimeZone)
+    LocalDateTime test2 = new LocalDateTime(1L, DateTimeZone.forID("America/New_York"));
+
+    // BUG: Diagnostic contains: The use of LocalDateTime(java.lang.Object,org.joda.time.DateTimeZone)
+    LocalDateTime test3 = new LocalDateTime(null, DateTimeZone.forID("America/New_York"));
   }
 }

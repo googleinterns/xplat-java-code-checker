@@ -1,5 +1,6 @@
 package com.google.errorprone.xplat.checker;
 
+import com.google.errorprone.BugCheckerRefactoringTestHelper;
 import com.google.errorprone.CompilationTestHelper;
 
 
@@ -22,13 +23,43 @@ public class JodaTimeLocalTest {
   }
 
   @Test
-  public void customCheckPositiveCases() {
+  public void positiveCases() {
     compilationHelper.addSourceFile("JodaTimeLocalPositiveCases.java").doTest();
   }
 
   @Test
-  public void customCheckNegativeCases() {
+  public void negativeCases() {
     compilationHelper.addSourceFile("JodaTimeLocalNegativeCases.java").doTest();
+  }
+
+  @Test
+  public void refactor() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDateTime;",
+            "class Test {",
+            "  private DateTime badLocalDateTimeUse() {",
+            "  LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);",
+            "  return ldt.toDateTime(DateTimeZone.forID(\"America / New_York\"))",
+            "    .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDateTime;",
+            "class Test {",
+            "  private DateTime badLocalDateTimeUse() {",
+            "  LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);",
+            "return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(), ldt.getHourOfDay(),"
+                + " ldt.getMinuteOfHour(), ldt.getSecondOfMinute(), ldt.getMillisOfSecond(),"
+                + " DateTimeZone.forID(\"America / New_York\"))",
+            "    .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .doTest();
   }
 
 }

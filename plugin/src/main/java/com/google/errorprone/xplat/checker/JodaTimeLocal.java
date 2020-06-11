@@ -4,6 +4,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.BugPattern;
@@ -13,12 +14,17 @@ import com.google.errorprone.bugpatterns.BugChecker.MethodInvocationTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
+import com.google.errorprone.matchers.Description.Builder;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.Tree;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.tree.JCTree;
+import java.util.List;
 
 @BugPattern(
     name = "JodaTimeLocal",
@@ -31,79 +37,87 @@ import com.sun.source.tree.NewClassTree;
 public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMatcher,
     NewClassTreeMatcher {
 
-  private static final ImmutableMap<String, String> CLASS_NAMES =
-      ImmutableMap
-          .of("org.joda.time.LocalDateTime", "toDateTime",
-              "org.joda.time.LocalDate", "toDateTime",
-              "org.joda.time.LocalTime", "toDateTimeToday");
+  private static final ImmutableMap<String, ImmutableList<String>> CLASS_NAMES =
+      ImmutableMap.of("org.joda.time.LocalDateTime", ImmutableList.of("toDateTime"),
+          "org.joda.time.LocalDate", ImmutableList.of("toDateTime", "toDateTimeAtCurrentTime"),
+          "org.joda.time.LocalTime", ImmutableList.of("toDateTimeToday"));
 
 
   private static final Matcher<ExpressionTree> CONSTRUCTOR_MATCHER =
       Matchers.anyOf(
-          CLASS_NAMES.keySet().stream()
-              .map(
-                  typeName ->
-                      Matchers.constructor()
-                          .forClass(typeName)
-                          .withParameters("org.joda.time.DateTimeZone"))
-              .collect(toImmutableList()));
-
-  private static final Matcher<ExpressionTree> METHOD_MATCHER =
-      Matchers.allOf(
           Matchers.anyOf(
               CLASS_NAMES.keySet().stream()
                   .map(
-                      className ->
-                          Matchers.instanceMethod()
-                              .onExactClass(className)
-                              .named("toDateTime"))
+                      typeName ->
+                          Matchers.constructor()
+                              .forClass(typeName)
+                              .withParameters("org.joda.time.DateTimeZone"))
                   .collect(toImmutableList())),
-          // Allow usage by JodaTime itself
-          Matchers.not(Matchers.packageStartsWith("org.joda.time")));
-
+          Matchers.constructor()
+              .forClass("org.joda.time.LocalDateTime")
+              .withParameters("long", "org.joda.time.DateTimeZone"),
+          Matchers.constructor()
+              .forClass("org.joda.time.LocalDateTime")
+              .withParameters("java.lang.Object", "org.joda.time.DateTimeZone"));
 
   private Matcher<ExpressionTree> methodMatcher(String key) {
-    return Matchers.instanceMethod().onExactClass(key).named(CLASS_NAMES.get(key));
+    return Matchers.anyOf(
+        CLASS_NAMES.get(key).stream()
+            .map(
+                methodName ->
+                    Matchers.instanceMethod().onExactClass(key).named(methodName))
+            .collect(toImmutableList()));
+  }
+
+  private Description.Builder message(Tree tree, String arg) {
+    return buildDescription(tree)
+        .setMessage(
+            String.format("The use of %s is banned from cross platform development due to"
+                + " incompatibilities.", arg));
   }
 
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
-    if (methodMatcher("org.joda.time.LocalDateTime").matches(tree, state)
-        || methodMatcher("org.joda.time.LocalDate").matches(tree, state)) {
+    if (methodMatcher("org.joda.time.LocalDateTime").matches(tree, state)) {
 
       ExpressionTree recv = ASTHelpers.getReceiver(tree);
+      String recvSrc = state.getSourceForNode(recv);
+      Symbol symbol = ASTHelpers.getSymbol(tree);
+      List<? extends ExpressionTree> arguments = tree.getArguments();
 
-      String recvSource = state.getSourceForNode(recv);
+      String argument;
+      if (arguments.isEmpty()) {
+        argument = "DateTimeZone.getDefault()";
+      } else {
+        argument = arguments.toString();
+      }
 
-      return buildDescription(tree)
-          .setMessage(
-              String.format("The use of %s is banned from cross platform development due to"
-                  + " incompatibilities.", ASTHelpers.getSymbol(tree)))
-          .addFix(
-              SuggestedFix.replace(
-                  state.getEndPosition(ASTHelpers.getReceiver(tree)) - state.getSourceForNode(recv)
-                      .length(),
-                  state.getEndPosition(tree),
-                  String.format("new DateTime(%s.getYear(), %s.getMonthOfYear(),"
-                          + " %s.getDayOfYear(), %s.getHourOfDay(),"
-                          + " %s.getMinuteOfHour(), %s.getSecondOfMinute(), %s.getMillisOfSecond(),"
-                          + " %s)", recvSource, recvSource, recvSource, recvSource, recvSource,
-                      recvSource, recvSource, tree.getArguments())))
-          .build();
+      if (symbol != null && recvSrc != null && recv != null) {
+        return message(tree, symbol.toString())
+            .addFix(
+                SuggestedFix.builder()
+                    .addImport("org.joda.time.DateTimeZone")
+                    .replace(
+                        ((JCTree) recv).getStartPosition(),
+                        state.getEndPosition(tree),
+                        String.format("new DateTime(%s.getYear(), %<s.getMonthOfYear(),"
+                                + " %<s.getDayOfYear(), %<s.getHourOfDay(),"
+                                + " %<s.getMinuteOfHour(), %<s.getSecondOfMinute(), "
+                                + " %<s.getMillisOfSecond(), %s)",
+                            recvSrc, argument)).build())
+            .build();
+      }
     }
     return Description.NO_MATCH;
   }
 
   @Override
   public Description matchNewClass(NewClassTree tree, VisitorState state) {
-    if (CONSTRUCTOR_MATCHER.matches(tree, state)) {
-      return buildDescription(tree)
-          .setMessage(
-              String.format(
-                  "The use of %s is banned from cross platform development due to"
-                      + " incompatibilities. Please use a different constructor.",
-                  ASTHelpers.getSymbol(tree)))
-          .build();
+    Symbol symbol = ASTHelpers.getSymbol(tree);
+
+    if (CONSTRUCTOR_MATCHER.matches(tree, state) && symbol != null) {
+      System.out.println(tree.getArguments());
+      return message(tree, symbol.toString()).build();
     }
     return Description.NO_MATCH;
   }
