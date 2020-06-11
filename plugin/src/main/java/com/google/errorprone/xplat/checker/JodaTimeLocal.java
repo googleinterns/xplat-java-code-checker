@@ -39,7 +39,10 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
 
   private static final ImmutableMap<String, ImmutableList<String>> CLASS_NAMES =
       ImmutableMap.of("org.joda.time.LocalDateTime", ImmutableList.of("toDateTime"),
-          "org.joda.time.LocalDate", ImmutableList.of("toDateTime", "toDateTimeAtCurrentTime"),
+
+          "org.joda.time.LocalDate",
+          ImmutableList.of("toDateTime", "toDateTimeAtCurrentTime", "toDateTimeAtStartOfDay"),
+
           "org.joda.time.LocalTime", ImmutableList.of("toDateTimeToday"));
 
 
@@ -78,21 +81,20 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
 
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
-    if (methodMatcher("org.joda.time.LocalDateTime").matches(tree, state)) {
+    ExpressionTree recv = ASTHelpers.getReceiver(tree);
+    String recvSrc = state.getSourceForNode(recv);
+    Symbol symbol = ASTHelpers.getSymbol(tree);
+    List<? extends ExpressionTree> arguments = tree.getArguments();
+    if (symbol != null && recvSrc != null && recv != null) {
+      if (methodMatcher("org.joda.time.LocalDateTime").matches(tree, state)) {
 
-      ExpressionTree recv = ASTHelpers.getReceiver(tree);
-      String recvSrc = state.getSourceForNode(recv);
-      Symbol symbol = ASTHelpers.getSymbol(tree);
-      List<? extends ExpressionTree> arguments = tree.getArguments();
+        String argument;
+        if (arguments.isEmpty()) {
+          argument = "DateTimeZone.getDefault()";
+        } else {
+          argument = arguments.toString();
+        }
 
-      String argument;
-      if (arguments.isEmpty()) {
-        argument = "DateTimeZone.getDefault()";
-      } else {
-        argument = arguments.toString();
-      }
-
-      if (symbol != null && recvSrc != null && recv != null) {
         return message(tree, symbol.toString())
             .addFix(
                 SuggestedFix.builder()
@@ -106,6 +108,26 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
                                 + " %<s.getMillisOfSecond(), %s)",
                             recvSrc, argument)).build())
             .build();
+      } else if (methodMatcher("org.joda.time.LocalTime").matches(tree, state)) {
+        String argument;
+        if (arguments.isEmpty()) {
+          argument = "DateTimeZone.getDefault()";
+        } else {
+          argument = arguments.toString();
+        }
+
+        return message(tree, symbol.toString())
+            .addFix(
+                SuggestedFix.builder()
+                    .addImport("org.joda.time.DateTimeZone")
+                    .replace(
+                        ((JCTree) recv).getStartPosition(),
+                        state.getEndPosition(tree),
+                        String.format("new DateTime().now(%s).withTime(%s.getHourOfDay(),"
+                                + " %<s.getMinuteOfHour(), %<s.getSecondOfMinute(), "
+                                + " %<s.getMillisOfSecond())",
+                            argument, recvSrc)).build())
+            .build();
       }
     }
     return Description.NO_MATCH;
@@ -116,7 +138,6 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
     Symbol symbol = ASTHelpers.getSymbol(tree);
 
     if (CONSTRUCTOR_MATCHER.matches(tree, state) && symbol != null) {
-      System.out.println(tree.getArguments());
       return message(tree, symbol.toString()).build();
     }
     return Description.NO_MATCH;

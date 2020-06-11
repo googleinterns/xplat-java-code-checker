@@ -18,17 +18,24 @@ public class JodaTimeLocalPositiveCases {
 
   private DateTime badLocalDateTimeUse2() {
     LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);
-    // xBUG: Diagnostic contains: The use of toDateTime()
+    // BUG: Diagnostic contains: The use of toDateTime()
     return ldt.toDateTime()
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
 
-//  private DateTime badLocalTimeUse() {
-//    LocalTime lt = new LocalTime(8, 0, 0, 0);
-//    // xBUG: Diagnostic contains: The use of toDateTime(org.joda.time.DateTimeZone)
-//    return lt.toDateTime(DateTimeZone.forID("America/New_York"))
-//        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
-//  }
+  private DateTime badLocalTimeUse() {
+    LocalTime lt = new LocalTime(8, 0, 0, 0);
+    // BUG: Diagnostic contains: The use of toDateTimeToday(org.joda.time.DateTimeZone)
+    return lt.toDateTimeToday(DateTimeZone.forID("America/New_York"))
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
+  private DateTime badLocalTimeUse2() {
+    LocalTime lt = new LocalTime(8, 0, 0, 0);
+    // BUG: Diagnostic contains: The use of toDateTimeToday()
+    return lt.toDateTimeToday()
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
 
   private void consTest() {
     // BUG: Diagnostic contains: The use of LocalDateTime(org.joda.time.DateTimeZone)
