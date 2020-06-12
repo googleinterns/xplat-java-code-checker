@@ -6,7 +6,6 @@ import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
@@ -14,7 +13,6 @@ import com.google.errorprone.bugpatterns.BugChecker.MethodInvocationTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
-import com.google.errorprone.matchers.Description.Builder;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
 import com.google.errorprone.util.ASTHelpers;
@@ -26,12 +24,16 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.tree.JCTree;
 import java.util.List;
 
+/**
+ * Bans the use of some Joda-Time constructors and methods that convert to a DateTime or use a
+ * DateTimeZone. A fix is suggested that is cross platform compatible.
+ */
 @BugPattern(
     name = "JodaTimeLocal",
-    summary = "Bans the usage of timezoned toDateTime in some Joda-Time classes.",
+    summary = "Bans the usage of timezoned toDateTime methods in some Joda-Time classes.",
     explanation =
         "The usage of timezoned LocalDateTime, LocalDate and LocalTime Joda-Time constructors"
-            + "/toDateTime methods are banned from cross platform development"
+            + " and toDateTime methods are banned from cross platform development"
             + " due to incompatibilities. A fix using a new DateTime is suggested.",
     severity = ERROR)
 public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMatcher,
@@ -79,55 +81,83 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
                 + " incompatibilities.", arg));
   }
 
+  private Description messageFix(Tree tree, String arg, int start, int end,
+      String replacement) {
+    return message(tree, arg)
+        .addFix(
+            SuggestedFix.builder()
+                .addImport("org.joda.time.DateTimeZone")
+                .replace(
+                    start,
+                    end,
+                    replacement)
+                .build())
+        .build();
+  }
+
+
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
     ExpressionTree recv = ASTHelpers.getReceiver(tree);
     String recvSrc = state.getSourceForNode(recv);
     Symbol symbol = ASTHelpers.getSymbol(tree);
     List<? extends ExpressionTree> arguments = tree.getArguments();
+
+    String argument;
+    if (arguments.isEmpty()) {
+      argument = "DateTimeZone.getDefault()";
+    } else {
+      argument = state.getSourceForNode(arguments.get(0));
+    }
+
     if (symbol != null && recvSrc != null && recv != null) {
       if (methodMatcher("org.joda.time.LocalDateTime").matches(tree, state)) {
 
-        String argument;
-        if (arguments.isEmpty()) {
-          argument = "DateTimeZone.getDefault()";
-        } else {
-          argument = arguments.toString();
-        }
+        return messageFix(tree, symbol.toString(), ((JCTree) recv).getStartPosition(),
+            state.getEndPosition(tree),
+            String.format("new DateTime(%s.getYear(), %<s.getMonthOfYear(),"
+                    + " %<s.getDayOfYear(), %<s.getHourOfDay(),"
+                    + " %<s.getMinuteOfHour(), %<s.getSecondOfMinute(),"
+                    + " %<s.getMillisOfSecond(), %s)",
+                recvSrc, argument));
 
-        return message(tree, symbol.toString())
-            .addFix(
-                SuggestedFix.builder()
-                    .addImport("org.joda.time.DateTimeZone")
-                    .replace(
-                        ((JCTree) recv).getStartPosition(),
-                        state.getEndPosition(tree),
-                        String.format("new DateTime(%s.getYear(), %<s.getMonthOfYear(),"
-                                + " %<s.getDayOfYear(), %<s.getHourOfDay(),"
-                                + " %<s.getMinuteOfHour(), %<s.getSecondOfMinute(), "
-                                + " %<s.getMillisOfSecond(), %s)",
-                            recvSrc, argument)).build())
-            .build();
       } else if (methodMatcher("org.joda.time.LocalTime").matches(tree, state)) {
-        String argument;
-        if (arguments.isEmpty()) {
-          argument = "DateTimeZone.getDefault()";
-        } else {
-          argument = arguments.toString();
+
+        return messageFix(tree, symbol.toString(), ((JCTree) recv).getStartPosition(),
+            state.getEndPosition(tree), String.format("new DateTime().now(%s).withTime(%s)",
+                argument, recvSrc));
+
+      } else if (methodMatcher("org.joda.time.LocalDate").matches(tree, state)) {
+
+        if (symbol.name.toString().equals("toDateTime")) {
+          String zone;
+
+          if (arguments.size() == 1) {
+            zone = "DateTimeZone.getDefault()";
+          } else {
+            zone = state.getSourceForNode(arguments.get(1));
+          }
+
+          return messageFix(tree, symbol.toString(), ((JCTree) recv).getStartPosition(),
+              state.getEndPosition(tree),
+              String.format("new DateTime(%s.getYear(), %<s.getMonthOfYear(),"
+                      + " %<s.getDayOfYear(), %s.getHourOfDay(),"
+                      + " %<s.getMinuteOfHour(), %<s.getSecondOfMinute(),"
+                      + " %<s.getMillisOfSecond(), %s)",
+                  recvSrc, argument, zone));
+
+        } else if (symbol.name.toString().equals("toDateTimeAtStartOfDay") && arguments.isEmpty()) {
+
+          return messageFix(tree, symbol.toString(), state.getEndPosition(recv),
+              state.getEndPosition(tree), ".toDateTimeAtStartOfDay(DateTimeZone.getDefault())");
+
+        } else if (symbol.name.toString().equals("toDateTimeAtCurrentTime")) {
+
+          return messageFix(tree, symbol.toString(), ((JCTree) recv).getStartPosition(),
+              state.getEndPosition(tree), String.format("new DateTime().now(%s).withDate(%s)",
+                  argument, recvSrc));
         }
 
-        return message(tree, symbol.toString())
-            .addFix(
-                SuggestedFix.builder()
-                    .addImport("org.joda.time.DateTimeZone")
-                    .replace(
-                        ((JCTree) recv).getStartPosition(),
-                        state.getEndPosition(tree),
-                        String.format("new DateTime().now(%s).withTime(%s.getHourOfDay(),"
-                                + " %<s.getMinuteOfHour(), %<s.getSecondOfMinute(), "
-                                + " %<s.getMillisOfSecond())",
-                            argument, recvSrc)).build())
-            .build();
       }
     }
     return Description.NO_MATCH;

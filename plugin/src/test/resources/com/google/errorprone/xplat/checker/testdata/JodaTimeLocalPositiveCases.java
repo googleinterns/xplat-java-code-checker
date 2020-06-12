@@ -37,6 +37,43 @@ public class JodaTimeLocalPositiveCases {
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
 
+  private DateTime badLocalDateUse() {
+    LocalDate ld = new LocalDate(2020, 6, 2);
+    LocalTime now = LocalTime.now();
+    // BUG: Diagnostic contains: The use of toDateTime(org.joda.time.LocalTime,org.joda.time.DateTimeZone)
+    return ld.toDateTime(now, DateTimeZone.forID("America/New_York"))
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
+  private DateTime badLocalDateUse2() {
+    LocalDate ld = new LocalDate(2020, 6, 2);
+    LocalTime now = LocalTime.now();
+    // BUG: Diagnostic contains: The use of toDateTime(org.joda.time.LocalTime)
+    return ld.toDateTime(now)
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
+  private DateTime badLocalDateUse3() {
+    LocalDate ld = new LocalDate(2020, 6, 2);
+    // BUG: Diagnostic contains: The use of toDateTimeAtStartOfDay()
+    return ld.toDateTimeAtStartOfDay()
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
+  private DateTime badLocalDateUse4() {
+    LocalDate ld = new LocalDate(2020, 6, 2);
+    // BUG: Diagnostic contains: The use of toDateTimeAtCurrentTime(org.joda.time.DateTimeZone)
+    return ld.toDateTimeAtCurrentTime(DateTimeZone.forID("America/New_York"))
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
+  private DateTime badLocalDateUse5() {
+    LocalDate ld = new LocalDate(2020, 6, 2);
+    // BUG: Diagnostic contains: The use of toDateTimeAtCurrentTime()
+    return ld.toDateTimeAtCurrentTime()
+        .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
+  }
+
   private void consTest() {
     // BUG: Diagnostic contains: The use of LocalDateTime(org.joda.time.DateTimeZone)
     LocalDateTime test1 = new LocalDateTime(DateTimeZone.forID("America/New_York"));

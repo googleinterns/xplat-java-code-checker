@@ -32,6 +32,7 @@ public class JodaTimeLocalTest {
     compilationHelper.addSourceFile("JodaTimeLocalNegativeCases.java").doTest();
   }
 
+  // LocalDateTime -> DateTime with DateTimeZone
   @Test
   public void refactorLocalDateTime() {
     BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
@@ -53,7 +54,8 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalDateTimeUse() {",
             "  LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);",
-            "return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(), ldt.getHourOfDay(),"
+            "return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(),"
+                + " ldt.getHourOfDay(),"
                 + " ldt.getMinuteOfHour(), ldt.getSecondOfMinute(), ldt.getMillisOfSecond(),"
                 + " DateTimeZone.forID(\"America / New_York\"))",
             "    .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
@@ -62,6 +64,7 @@ public class JodaTimeLocalTest {
         .doTest();
   }
 
+  // LocalDateTime -> DateTime without DateTimeZone
   @Test
   public void refactorLocalDateTime2() {
     BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
@@ -83,7 +86,8 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalDateTimeUse() {",
             "    LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);",
-            "    return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(), ldt.getHourOfDay(),"
+            "    return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(),"
+                + " ldt.getHourOfDay(),"
                 + " ldt.getMinuteOfHour(), ldt.getSecondOfMinute(), ldt.getMillisOfSecond(),"
                 + " DateTimeZone.getDefault())",
             "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
@@ -92,6 +96,7 @@ public class JodaTimeLocalTest {
         .doTest();
   }
 
+  // LocalTime -> DateTime with DateTimeZone
   @Test
   public void refactorLocalTime() {
     BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
@@ -114,15 +119,14 @@ public class JodaTimeLocalTest {
             "  private DateTime badLocalTimeUse() {",
             "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
             "    return new DateTime().now(DateTimeZone.forID(\"America / New_York\"))"
-                + ".withTime(lt.getHourOfDay(),"
-                + " lt.getMinuteOfHour(), lt.getSecondOfMinute(), lt.getMillisOfSecond())",
+                + ".withTime(lt)",
             "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
             "  }",
             "}")
         .doTest();
   }
 
-
+  // LocalTime -> DateTime without DateTimeZone
   @Test
   public void refactorLocalTime2() {
     BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
@@ -144,8 +148,193 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalTimeUse() {",
             "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
-            "    return new DateTime().now(DateTimeZone.getDefault()).withTime(lt.getHourOfDay(),"
-                + " lt.getMinuteOfHour(), lt.getSecondOfMinute(), lt.getMillisOfSecond())",
+            "    return new DateTime().now(DateTimeZone.getDefault()).withTime(lt)",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  // Testing to make sure import statement gets added
+  @Test
+  public void refactorAddImport() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.LocalTime;",
+            "class Test {",
+            "  private DateTime badLocalTimeUse() {",
+            "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
+            "    return lt.toDateTimeToday();",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalTime;",
+            "class Test {",
+            "  private DateTime badLocalTimeUse() {",
+            "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
+            "    return new DateTime().now(DateTimeZone.getDefault()).withTime(lt);",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  // LocalDate -> DateTime with DateTimeZone
+  @Test
+  public void refactorLocalDate() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "import org.joda.time.LocalTime;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    LocalTime now = LocalTime.now();",
+            "    return ld.toDateTime(now, DateTimeZone.forID(\"America / New_York\"))",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "import org.joda.time.LocalTime;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    LocalTime now = LocalTime.now();",
+            "    return new DateTime(ld.getYear(), ld.getMonthOfYear(), ld.getDayOfYear(),"
+                + " now.getHourOfDay(), now.getMinuteOfHour(),"
+                + " now.getSecondOfMinute(), now.getMillisOfSecond(),"
+                + " DateTimeZone.forID(\"America / New_York\"))",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  // LocalDate -> DateTime without DateTimeZone
+  @Test
+  public void refactorLocalDate2() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "import org.joda.time.LocalTime;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    LocalTime now = LocalTime.now();",
+            "    return ld.toDateTime(now)",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "import org.joda.time.LocalTime;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    LocalTime now = LocalTime.now();",
+            "    return new DateTime(ld.getYear(), ld.getMonthOfYear(), ld.getDayOfYear(),"
+                + " now.getHourOfDay(), now.getMinuteOfHour(),"
+                + " now.getSecondOfMinute(), now.getMillisOfSecond(), DateTimeZone.getDefault())",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .doTest();
+
+  }
+
+  // LocalDate -> DateTime with DateTimeZone - toDateTimeAtStartOfDay
+  @Test
+  public void refactorLocalDate3() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    return ld.toDateTimeAtStartOfDay()",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    return ld.toDateTimeAtStartOfDay(DateTimeZone.getDefault())",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .doTest();
+
+  }
+
+  // LocalDate -> DateTime with DateTimeZone - toDateTimeAtCurrentTime
+  @Test
+  public void refactorLocalDate4() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    return ld.toDateTimeAtCurrentTime(DateTimeZone.forID(\"America / New_York\"))",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    return new DateTime().now(DateTimeZone.forID(\"America / New_York\")).withDate(ld)",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  // LocalDate -> DateTime without DateTimeZone - toDateTimeAtCurrentTime
+  @Test
+  public void refactorLocalDate5() {
+    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+        .addInputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    return ld.toDateTimeAtCurrentTime()",
+            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import org.joda.time.DateTime;",
+            "import org.joda.time.DateTimeZone;",
+            "import org.joda.time.LocalDate;",
+            "class Test {",
+            "  private DateTime badLocalDateUse() {",
+            "    LocalDate ld = new LocalDate(2020, 6, 2);",
+            "    return new DateTime().now(DateTimeZone.getDefault()).withDate(ld)",
             "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
             "  }",
             "}")
