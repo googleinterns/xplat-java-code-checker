@@ -132,7 +132,7 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalTimeUse() {",
             "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
-            "    return new DateTime().now(DateTimeZone.forID(\"America / New_York\"))"
+            "    return new DateTime().toDateTime(DateTimeZone.forID(\"America / New_York\"))"
                 + ".withTime(lt)",
             "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
             "  }",
@@ -162,7 +162,7 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalTimeUse() {",
             "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
-            "    return new DateTime().now(DateTimeZone.getDefault()).withTime(lt)",
+            "    return new DateTime().toDateTime(DateTimeZone.getDefault()).withTime(lt)",
             "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
             "  }",
             "}")
@@ -189,7 +189,7 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalTimeUse() {",
             "    LocalTime lt = new LocalTime(8, 0, 0, 0);",
-            "    return new DateTime().now(DateTimeZone.getDefault()).withTime(lt);",
+            "    return new DateTime().toDateTime(DateTimeZone.getDefault()).withTime(lt);",
             "  }",
             "}")
         .doTest();
@@ -319,8 +319,8 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalDateUse() {",
             "    LocalDate ld = new LocalDate(2020, 6, 2);",
-            "    return new DateTime().now(DateTimeZone.forID(\"America / New_York\")).withDate(ld)",
-            "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "    return new DateTime().toDateTime(DateTimeZone.forID(\"America / New_York\"))",
+            "      .withDate(ld).toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
             "  }",
             "}")
         .doTest();
@@ -348,7 +348,7 @@ public class JodaTimeLocalTest {
             "class Test {",
             "  private DateTime badLocalDateUse() {",
             "    LocalDate ld = new LocalDate(2020, 6, 2);",
-            "    return new DateTime().now(DateTimeZone.getDefault()).withDate(ld)",
+            "    return new DateTime().toDateTime(DateTimeZone.getDefault()).withDate(ld)",
             "      .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
             "  }",
             "}")

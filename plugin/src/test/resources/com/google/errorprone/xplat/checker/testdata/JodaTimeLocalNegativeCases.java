@@ -46,7 +46,7 @@ public class JodaTimeLocalNegativeCases {
   // LocalTime -> DateTime with DateTimeZone
   private DateTime goodLocalTimeUse() {
     LocalTime lt = new LocalTime(8, 0, 0, 0);
-    return new DateTime().now(DateTimeZone.forID("America/New_York"))
+    return new DateTime().toDateTime(DateTimeZone.forID("America/New_York"))
         .withTime(lt)
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
@@ -54,7 +54,7 @@ public class JodaTimeLocalNegativeCases {
   // LocalTime -> DateTime without DateTimeZone
   private DateTime goodLocalTimeUse2() {
     LocalTime lt = new LocalTime(8, 0, 0, 0);
-    return new DateTime().now(DateTimeZone.getDefault())
+    return new DateTime().toDateTime(DateTimeZone.getDefault())
         .withTime(lt)
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
@@ -89,7 +89,7 @@ public class JodaTimeLocalNegativeCases {
   // LocalDate -> DateTime with DateTimeZone - toDateTimeAtCurrentTime
   private DateTime goodLocalDateUse4() {
     LocalDate ld = new LocalDate(2020, 6, 2);
-    return new DateTime().now(DateTimeZone.forID("America/New_York"))
+    return new DateTime().toDateTime(DateTimeZone.forID("America/New_York"))
         .withDate(ld)
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
@@ -97,7 +97,7 @@ public class JodaTimeLocalNegativeCases {
   // LocalDate -> DateTime without DateTimeZone - toDateTimeAtCurrentTime
   private DateTime goodLocalDateUse5() {
     LocalDate ld = new LocalDate(2020, 6, 2);
-    return new DateTime().now(DateTimeZone.getDefault())
+    return new DateTime().toDateTime(DateTimeZone.getDefault())
         .withDate(ld)
         .toDateTime(DateTimeZone.forID("America/Los_Angeles"));
   }
