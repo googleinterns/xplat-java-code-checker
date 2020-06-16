@@ -18,12 +18,17 @@ package com.google.errorprone.xplat.checker.testdata;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 public class UnnecessaryConcurrentHashMapTestNegative {
 
   public void test() {
     Map<String, Integer> map = Collections.synchronizedMap(new HashMap<>());
-    
+
+    Map<String, Integer> map2 = Collections.synchronizedMap(new HashMap<>());
+
     Map<String, Integer> map3;
+
+    ConcurrentMap<Object, String> map4;
   }
 }

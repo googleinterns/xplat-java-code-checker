@@ -21,16 +21,27 @@ import java.util.concurrent.ConcurrentMap;
 public class UnnecessaryConcurrentHashMapTestPositive {
 
   public void test() {
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
     ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<String, Integer>();
 
-    ConcurrentHashMap<String, Integer> map2 = new ConcurrentHashMap<>();
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
+    ConcurrentHashMap<Object, Long> map2 = new ConcurrentHashMap<>();
 
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
     ConcurrentHashMap<String, Integer> map3;
 
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
     map3 = new ConcurrentHashMap<String, Integer>();
 
-    ConcurrentMap<String, Integer> map4 = new ConcurrentHashMap<>();
+    ConcurrentMap<Object, String> map4;
 
-    Map<String, Integer> map5 = new ConcurrentHashMap<>();
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
+    ConcurrentMap<String, Integer> map5 = new ConcurrentHashMap<>();
+
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
+    Map<String, Integer> map6 = new ConcurrentHashMap<>();
+
+    // xBUG: Diagnostic contains: ConcurrentHashMap is not advised
+    map4 = new ConcurrentHashMap<>();
   }
 }
