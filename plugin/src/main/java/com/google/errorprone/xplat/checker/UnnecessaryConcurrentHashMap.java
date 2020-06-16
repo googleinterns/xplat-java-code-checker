@@ -30,8 +30,12 @@ import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePathScanner;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.tree.JCTree;
 import java.beans.Expression;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,8 +55,23 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
   @Override
   public Description matchNewClass(NewClassTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
+      System.out.println("new");
       System.out.println(ASTHelpers.getType(tree));
+      System.out.println(state.getPath().getParentPath().getLeaf());
+      System.out.println(ASTHelpers.getSymbol(state.getPath().getParentPath().getLeaf()));
+
+      VariableTree var =
+          new TreePathScanner<VariableTree, Void>() {
+
+            @Override
+            public VariableTree visitVariable(VariableTree node, Void unused) {
+
+              return super.visitVariable(node, null);
+            }
+          }.scan(state.getPath().getParentPath(), null);
+      System.out.println(var);
       System.out.println();
+
     }
     return Description.NO_MATCH;
   }
@@ -60,8 +79,46 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
   @Override
   public Description matchVariable(VariableTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
+      System.out.println("var");
       System.out.println(ASTHelpers.getType(tree).getTypeArguments());
       System.out.println(state.getSourceForNode(tree));
+      System.out.println(state.getSourceForNode(tree).contains("="));
+
+      Symbol symbol = ASTHelpers.getSymbol(tree);
+      Tree declarationParent = state.getPath().getParentPath().getLeaf();
+
+      NewClassTree newClass =
+          new TreePathScanner<NewClassTree, Void>() {
+            @Override
+            public NewClassTree visitNewClass(NewClassTree node, Void unused) {
+
+              if (node != null) {
+                return node;
+              }
+
+              return super.visitNewClass(node, unused);
+            }
+          }.scan(state.getPath(), null);
+
+      System.out.println(newClass);
+
+      AssignmentTree assignment =
+          new TreePathScanner<AssignmentTree, Void>() {
+
+            @Override
+            public AssignmentTree visitAssignment(AssignmentTree node, Void unused) {
+              if (symbol.equals(ASTHelpers.getSymbol(node.getVariable()))) {
+                Tree grandParent = getCurrentPath().getParentPath().getParentPath().getLeaf();
+                if (getCurrentPath().getParentPath().getLeaf() instanceof StatementTree
+                    && grandParent.equals(declarationParent)) {
+                  return node;
+                }
+              }
+              return super.visitAssignment(node, null);
+            }
+          }.scan(state.getPath().getParentPath(), null);
+
+      System.out.println(assignment);
       System.out.println();
     }
     return Description.NO_MATCH;
