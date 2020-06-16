@@ -14,7 +14,9 @@
 
 package com.google.errorprone.xplat.checker.testdata;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class UnnecessaryConcurrentHashMapTestPositive {
 
@@ -26,5 +28,9 @@ public class UnnecessaryConcurrentHashMapTestPositive {
     ConcurrentHashMap<String, Integer> map3;
 
     map3 = new ConcurrentHashMap<String, Integer>();
+
+    ConcurrentMap<String, Integer> map4 = new ConcurrentHashMap<>();
+
+    Map<String, Integer> map5 = new ConcurrentHashMap<>();
   }
 }

@@ -23,6 +23,8 @@ import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.AssignmentTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.VariableTreeMatcher;
+import com.google.errorprone.fixes.Fix;
+import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
@@ -65,6 +67,9 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
 
             @Override
             public VariableTree visitVariable(VariableTree node, Void unused) {
+              if (node != null) {
+                return node;
+              }
 
               return super.visitVariable(node, null);
             }
@@ -72,20 +77,25 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
       System.out.println(var);
       System.out.println();
 
+      return buildDescription(tree)
+          .setMessage("2 2 2ConcurrentHashMap is not advised for cross platform use.")
+          .build();
+
     }
+
     return Description.NO_MATCH;
   }
 
   @Override
   public Description matchVariable(VariableTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
-      System.out.println("var");
-      System.out.println(ASTHelpers.getType(tree).getTypeArguments());
-      System.out.println(state.getSourceForNode(tree));
-      System.out.println(state.getSourceForNode(tree).contains("="));
+//      System.out.println("var");
+//      System.out.println(ASTHelpers.getType(tree).getTypeArguments());
+//      System.out.println(state.getSourceForNode(tree));
+//      System.out.println(state.getSourceForNode(tree).contains("="));
 
-      Symbol symbol = ASTHelpers.getSymbol(tree);
-      Tree declarationParent = state.getPath().getParentPath().getLeaf();
+//      Symbol symbol = ASTHelpers.getSymbol(tree);
+//      Tree declarationParent = state.getPath().getParentPath().getLeaf();
 
       NewClassTree newClass =
           new TreePathScanner<NewClassTree, Void>() {
@@ -102,24 +112,41 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
 
       System.out.println(newClass);
 
-      AssignmentTree assignment =
-          new TreePathScanner<AssignmentTree, Void>() {
+      SuggestedFix.Builder fix = SuggestedFix.builder()
+          .addImport("java.util.Map")
+          .addImport("java.util.Collections")
+          .replace(
+              ((JCTree) tree).getStartPosition(),
+              ((JCTree) tree).getStartPosition() + 14,
+              "");
 
-            @Override
-            public AssignmentTree visitAssignment(AssignmentTree node, Void unused) {
-              if (symbol.equals(ASTHelpers.getSymbol(node.getVariable()))) {
-                Tree grandParent = getCurrentPath().getParentPath().getParentPath().getLeaf();
-                if (getCurrentPath().getParentPath().getLeaf() instanceof StatementTree
-                    && grandParent.equals(declarationParent)) {
-                  return node;
-                }
-              }
-              return super.visitAssignment(node, null);
-            }
-          }.scan(state.getPath().getParentPath(), null);
+      if (newClass != null) {
+        fix.replace(
+            ((JCTree) newClass).getStartPosition(),
+            state.getEndPosition(newClass),
+            "Collections.synchronizedMap(new HashMap<>())"
+        );
+      }
 
-      System.out.println(assignment);
-      System.out.println();
+      return buildDescription(tree)
+          .setMessage("ConcurrentHashMap is not advised for cross platform use.")
+          .addFix(fix.build())
+          .build();
+
+//
+//      AssignmentTree assignment =
+//          new TreePathScanner<AssignmentTree, Void>() {
+//
+//            @Override
+//            public AssignmentTree visitAssignment(AssignmentTree node, Void unused) {
+//              if (symbol.equals(ASTHelpers.getSymbol(node.getVariable()))) {
+//                return node;
+//              }
+//              return super.visitAssignment(node, null);
+//            }
+//          }.scan(state.getPath().getParentPath(), null);
+//
+//      System.out.println(assignment);
     }
     return Description.NO_MATCH;
   }
