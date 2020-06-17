@@ -55,16 +55,16 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
           Matchers.not(Matchers.isSameType("java.util.concurrent.ConcurrentHashMap"))
       );
 
-  private static final Set<NewClassTree> seenConstructors = new HashSet<>();
 
   @Override
   public Description matchNewClass(NewClassTree tree, VisitorState state) {
-    if (MATCHER.matches(tree, state) && !seenConstructors.contains(tree)) {
+    if (MATCHER.matches(tree, state)) {
 
       Tree variable = state.getPath().getParentPath().getLeaf();
 
       SuggestedFix.Builder fix = SuggestedFix.builder()
           .addImport("java.util.Collections")
+          .addImport("java.util.HashMap")
           .replace(
               ((JCTree) tree).getStartPosition(),
               state.getEndPosition(tree),
@@ -105,17 +105,19 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
               }
             }.scan(state.getPath().getParentPath().getParentPath().getParentPath(), null);
 
+        System.out.println(origin);
+
         if (origin != null && OTHER_MAP_INTERFACE_MATCHER.matches(origin, state)) {
+
           String originSource = state.getSourceForNode(origin);
-          fix2.setShortDescription("Hello can you hear me?")
-              .addImport("java.util.Map")
+          fix2.addImport("java.util.Map")
               .replace(
                   ((JCTree) origin).getStartPosition(),
                   ((JCTree) origin).getStartPosition() + originSource.indexOf("<"),
                   "Map");
         }
       }
-      
+
       return buildDescription(tree)
           .setMessage("ConcurrentHashMap is not advised for cross platform use. Use"
               + " Collections.synchronizedMap instead.")
@@ -153,4 +155,6 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
 
     return Description.NO_MATCH;
   }
+
+
 }

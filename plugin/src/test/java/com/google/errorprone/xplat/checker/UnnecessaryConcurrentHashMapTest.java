@@ -46,31 +46,44 @@ public class UnnecessaryConcurrentHashMapTest {
   }
 
   @Test
-  public void refactor() {
-    BugCheckerRefactoringTestHelper.newInstance(new JodaTimeLocal(), getClass())
+  public void refactorSameLine() {
+    BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
         .addInputLines("Test.java",
-            "import org.joda.time.DateTime;",
-            "import org.joda.time.DateTimeZone;",
-            "import org.joda.time.LocalDateTime;",
+            "import java.util.concurrent.ConcurrentHashMap;",
             "class Test {",
-            "  private DateTime badLocalDateTimeUse() {",
-            "  LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);",
-            "  return ldt.toDateTime(DateTimeZone.forID(\"America / New_York\"))",
-            "    .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  private void test() {",
+            "    ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<String, Integer>();",
             "  }",
             "}")
         .addOutputLines("Test.java",
-            "import org.joda.time.DateTime;",
-            "import org.joda.time.DateTimeZone;",
-            "import org.joda.time.LocalDateTime;",
+            "import java.util.Collections;",
+            "import java.util.HashMap;",
+            "import java.util.Map;",
+            "import java.util.concurrent.ConcurrentHashMap;",
             "class Test {",
-            "  private DateTime badLocalDateTimeUse() {",
-            "  LocalDateTime ldt = new LocalDateTime(2020, 6, 2, 8, 0, 0, 0);",
-            "return new DateTime(ldt.getYear(), ldt.getMonthOfYear(), ldt.getDayOfYear(),"
-                + " ldt.getHourOfDay(),"
-                + " ldt.getMinuteOfHour(), ldt.getSecondOfMinute(), ldt.getMillisOfSecond(),"
-                + " DateTimeZone.forID(\"America / New_York\"))",
-            "    .toDateTime(DateTimeZone.forID(\"America / Los_Angeles\"));",
+            "  private void test() {",
+            "    Map<String, Integer> map = Collections.synchronizedMap(new HashMap<>());",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
+  public void refactorDeclaration() {
+    BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
+        .addInputLines("Test.java",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "class Test {",
+            "  private void test() {",
+            "    ConcurrentHashMap<String, Integer> map;",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import java.util.Map;",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "class Test {",
+            "  private void test() {",
+            "    Map<String, Integer> map;",
             "  }",
             "}")
         .doTest();

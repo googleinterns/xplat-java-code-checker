@@ -41,7 +41,7 @@ public class UnnecessaryConcurrentHashMapTestPositive {
     // BUG: Diagnostic contains: ConcurrentHashMap is not advised
     Map<String, Integer> map6 = new ConcurrentHashMap<>();
 
-    // xBUG: Diagnostic contains: ConcurrentHashMap is not advised
+    // BUG: Diagnostic contains: ConcurrentHashMap is not advised
     map4 = new ConcurrentHashMap<>();
   }
 }
