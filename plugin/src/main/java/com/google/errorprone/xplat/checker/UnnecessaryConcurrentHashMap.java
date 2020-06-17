@@ -23,6 +23,7 @@ import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.VariableTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
+import com.google.errorprone.fixes.SuggestedFixes;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
@@ -70,8 +71,6 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
               state.getEndPosition(tree),
               "Collections.synchronizedMap(new HashMap<>())");
 
-      SuggestedFix.Builder fix2 = SuggestedFix.builder();
-
       if (variable != null && variable.getKind() == Kind.VARIABLE) {
         String source = state.getSourceForNode(variable);
 
@@ -110,7 +109,7 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
         if (origin != null && OTHER_MAP_INTERFACE_MATCHER.matches(origin, state)) {
 
           String originSource = state.getSourceForNode(origin);
-          fix2.addImport("java.util.Map")
+          fix.addImport("java.util.Map")
               .replace(
                   ((JCTree) origin).getStartPosition(),
                   ((JCTree) origin).getStartPosition() + originSource.indexOf("<"),
