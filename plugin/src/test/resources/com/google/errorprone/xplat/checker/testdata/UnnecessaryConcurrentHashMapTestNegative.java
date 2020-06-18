@@ -22,10 +22,11 @@ import java.util.concurrent.ConcurrentMap;
 
 public class UnnecessaryConcurrentHashMapTestNegative {
 
+  // All of these are allowed map usages
   public void test() {
     Map<String, Integer> map = Collections.synchronizedMap(new HashMap<>());
 
-    Map<String, Integer> map2 = Collections.synchronizedMap(new HashMap<>());
+    Map<Long, String> map2 = Collections.synchronizedMap(new HashMap<>());
 
     Map<String, Integer> map3;
 

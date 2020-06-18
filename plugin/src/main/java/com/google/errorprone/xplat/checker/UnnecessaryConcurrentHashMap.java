@@ -23,7 +23,6 @@ import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.VariableTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
-import com.google.errorprone.fixes.SuggestedFixes;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
@@ -33,22 +32,30 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePathScanner;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 
+/**
+ * Checks for usage of ConcurrentHashMap and suggests the use of Collections.synchronizedMap. This
+ * is due to how ConcurrentHashMap behaves on Android.
+ */
 @BugPattern(
     name = "UnnecessaryConcurrentHashMap",
-    summary = "Suggests the use of synchronizedMap instead of ConcurrentHashMap",
+    summary = "Suggests the use of Collections.synchronizedMap instead of ConcurrentHashMap.",
     explanation =
         "ConcurrentHashMap is not well suited for use on Android devices. For this reason,"
-            + " synchronizedMap is suggested to be used in its place for better compatibility.",
+            + " Collections.synchronizedMap is suggested to be used in its place for"
+            + " better compatibility.",
     severity = WARNING)
 public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClassTreeMatcher,
     VariableTreeMatcher {
 
-  private static final Matcher<Tree> MATCHER =
+  private static final Matcher<Tree> CONCURRENT_HASH_MAP_MATCHER =
       Matchers.isSameType("java.util.concurrent.ConcurrentHashMap");
+
+  private static final Matcher<Tree> MAP_MATCHER =
+      Matchers.isSameType("java.util.Map");
 
   private static final Matcher<Tree> OTHER_MAP_INTERFACE_MATCHER =
       Matchers.allOf(
@@ -56,12 +63,21 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
           Matchers.not(Matchers.isSameType("java.util.concurrent.ConcurrentHashMap"))
       );
 
+  private static final String STANDARD_MESSAGE =
+      "ConcurrentHashMap is not advised for cross platform use. Use"
+          + " Collections.synchronizedMap instead.";
+
+  private Description standardDescription(Tree tree, SuggestedFix fix, String message) {
+    return buildDescription(tree)
+        .setMessage(message)
+        .addFix(fix)
+        .build();
+  }
+
 
   @Override
   public Description matchNewClass(NewClassTree tree, VisitorState state) {
-    if (MATCHER.matches(tree, state)) {
-
-      Tree variable = state.getPath().getParentPath().getLeaf();
+    if (CONCURRENT_HASH_MAP_MATCHER.matches(tree, state)) {
 
       SuggestedFix.Builder fix = SuggestedFix.builder()
           .addImport("java.util.Collections")
@@ -71,10 +87,14 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
               state.getEndPosition(tree),
               "Collections.synchronizedMap(new HashMap<>())");
 
-      if (variable != null && variable.getKind() == Kind.VARIABLE) {
+      Tree variable = state.getPath().getParentPath().getLeaf();
+
+      if (variable == null) {
+        return Description.NO_MATCH;
+      } else if (variable.getKind() == Kind.VARIABLE) {
         String source = state.getSourceForNode(variable);
 
-        if (source != null && source.contains("<")) {
+        if (source != null && source.contains("<") && !MAP_MATCHER.matches(variable, state)) {
           fix.addImport("java.util.Map");
           fix.replace(
               ((JCTree) variable).getStartPosition(),
@@ -82,50 +102,80 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
               "Map");
         }
 
-      } else if (variable != null && variable.getKind() == Kind.ASSIGNMENT) {
-        String originName = state.getSourceForNode(state.getPath().getParentPath().getLeaf())
-            .substring(0,
-                state.getSourceForNode(state.getPath().getParentPath().getLeaf()).indexOf("="))
-            .trim();
+      } else if (variable.getKind() == Kind.ASSIGNMENT) {
+        Optional<Description> desc = incompatibleInterfaceDesc(variable, state,
+            state.getSourceForNode(variable));
 
-        VariableTree origin =
-            new TreePathScanner<VariableTree, Void>() {
-              @Override
-              public VariableTree reduce(VariableTree a, VariableTree b) {
-                return a == null ? b : a;
-              }
+        if (desc.isPresent()) {
+          state.reportMatch(standardDescription(tree, fix.build(), STANDARD_MESSAGE));
 
-              @Override
-              public VariableTree visitVariable(VariableTree node, Void aVoid) {
-                if (node.getName().toString().equals(originName)) {
-                  return node;
-                }
-                return super.visitVariable(node, aVoid);
-              }
-            }.scan(state.getPath().getParentPath().getParentPath().getParentPath(), null);
+          return desc.get();
+        } else {
+          return standardDescription(tree, fix.build(), STANDARD_MESSAGE +
+              " Make sure that this variable is declared with the Map interface.");
+        }
+      }
+      return standardDescription(tree, fix.build(), STANDARD_MESSAGE);
+    }
 
-        System.out.println(origin);
+    return Description.NO_MATCH;
+  }
 
-        if (origin != null && OTHER_MAP_INTERFACE_MATCHER.matches(origin, state)) {
+  /**
+   * Handles the edge case where the ConcurrentHashMap is declared with an interface that is
+   * incompatible with Collections.synchronizedMap on a different line than it is instantiated. This
+   * only handles the case where both are in the same scope. Otherwise, it is on the user to verify
+   * that the variable is declared with a valid interface.
+   */
+  private Optional<Description> incompatibleInterfaceDesc(Tree tree, VisitorState state,
+      String source) {
 
-          String originSource = state.getSourceForNode(origin);
-          fix.addImport("java.util.Map")
+    String treeSource = state.getSourceForNode(tree);
+
+    if (treeSource == null || source == null || !source.contains("=")) {
+      return Optional.empty();
+    }
+
+    String originName = source.substring(0, treeSource.indexOf("=")).trim();
+
+    VariableTree origin =
+        new TreePathScanner<VariableTree, Void>() {
+          @Override
+          public VariableTree reduce(VariableTree a, VariableTree b) {
+            return a == null ? b : a;
+          }
+
+          @Override
+          public VariableTree visitVariable(VariableTree node, Void unused) {
+            if (node.getName().toString().equals(originName)) {
+              return node;
+            }
+            return super.visitVariable(node, unused);
+          }
+        }.scan(state.getPath().getParentPath().getParentPath().getParentPath(), null);
+
+    if (origin == null) {
+      return Optional.empty();
+    }
+
+    String originSource = state.getSourceForNode(origin);
+
+    if (originSource != null && OTHER_MAP_INTERFACE_MATCHER.matches(origin, state)) {
+
+      return Optional.of(buildDescription(origin)
+          .setMessage("This variable is declared with an interface that is not compatible"
+              + " with Collections.synchronizedMap, which is advised over ConcurrentHashMap.")
+          .addFix(SuggestedFix.builder()
+              .addImport("java.util.Map")
               .replace(
                   ((JCTree) origin).getStartPosition(),
                   ((JCTree) origin).getStartPosition() + originSource.indexOf("<"),
-                  "Map");
-        }
-      }
-
-      return buildDescription(tree)
-          .setMessage("ConcurrentHashMap is not advised for cross platform use. Use"
-              + " Collections.synchronizedMap instead.")
-          .addFix(fix.build())
-          .build();
-
-
+                  "Map")
+              .build())
+          .build());
     }
-    return Description.NO_MATCH;
+
+    return Optional.empty();
   }
 
   /**
@@ -137,23 +187,24 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
   public Description matchVariable(VariableTree tree, VisitorState state) {
 
     String source = state.getSourceForNode(tree);
-    if (source != null && !source.contains("=") && MATCHER.matches(tree, state)) {
+
+    if (source != null && !source.contains("=") &&
+        CONCURRENT_HASH_MAP_MATCHER.matches(tree, state)) {
 
       return buildDescription(tree)
-          .setMessage("ConcurrentHashMap is not advised for cross platform use. Use"
-              + " Collections.synchronizedMap instead.")
+          .setMessage(STANDARD_MESSAGE)
           .addFix(
               SuggestedFix.builder()
                   .addImport("java.util.Map")
                   .replace(
                       ((JCTree) tree).getStartPosition(),
                       ((JCTree) tree).getStartPosition() + 14,
-                      "").build())
+                      "")
+                  .build())
           .build();
     }
 
     return Description.NO_MATCH;
   }
-
 
 }

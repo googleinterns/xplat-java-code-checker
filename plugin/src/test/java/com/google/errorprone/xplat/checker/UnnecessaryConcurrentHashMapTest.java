@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Unit tests for {@link MyCustomCheck}.
+ * Unit tests for {@link UnnecessaryConcurrentHashMap}.
  */
 @RunWith(JUnit4.class)
 public class UnnecessaryConcurrentHashMapTest {
@@ -69,6 +69,31 @@ public class UnnecessaryConcurrentHashMapTest {
   }
 
   @Test
+  public void refactorSameLineConcurrentMap() {
+    BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
+        .addInputLines("Test.java",
+            "import java.util.concurrent.ConcurrentMap;",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "class Test {",
+            "  private void test() {",
+            "    ConcurrentMap<String, Integer> map = new ConcurrentHashMap<String, Integer>();",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import java.util.Collections;",
+            "import java.util.HashMap;",
+            "import java.util.Map;",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "import java.util.concurrent.ConcurrentMap;",
+            "class Test {",
+            "  private void test() {",
+            "    Map<String, Integer> map = Collections.synchronizedMap(new HashMap<>());",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
   public void refactorDeclaration() {
     BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
         .addInputLines("Test.java",
@@ -91,6 +116,33 @@ public class UnnecessaryConcurrentHashMapTest {
 
   @Test
   public void refactor2Lines() {
+    BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
+        .addInputLines("Test.java",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "class Test {",
+            "  private void test() {",
+            "    ConcurrentHashMap<String, Integer> map;",
+            "    int x = 1;",
+            "    map = new ConcurrentHashMap<>();",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import java.util.Collections;",
+            "import java.util.HashMap;",
+            "import java.util.Map;",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "class Test {",
+            "  private void test() {",
+            "    Map<String, Integer> map;",
+            "    int x = 1;",
+            "    map = Collections.synchronizedMap(new HashMap<>());",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
+  public void refactorIncompatibleInterface() {
     BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
         .addInputLines("Test.java",
             "import java.util.concurrent.ConcurrentMap;",
