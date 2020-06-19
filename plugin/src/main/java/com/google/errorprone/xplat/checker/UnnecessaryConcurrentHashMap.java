@@ -37,16 +37,16 @@ import com.sun.tools.javac.tree.JCTree;
 import java.util.Optional;
 
 /**
- * Checks for usage of ConcurrentHashMap and suggests the use of Collections.synchronizedMap. This
- * is due to how ConcurrentHashMap behaves on Android.
+ * Checks for usage of ConcurrentHashMap and suggests the use of Collections.synchronizedMap.
+ * ConcurrentHashMap is not well supported on at least one available platform.
  */
 @BugPattern(
     name = "UnnecessaryConcurrentHashMap",
     summary = "Suggests the use of Collections.synchronizedMap instead of ConcurrentHashMap.",
     explanation =
-        "ConcurrentHashMap is not well suited for use on Android devices. For this reason,"
-            + " Collections.synchronizedMap is suggested to be used in its place for"
-            + " better compatibility.",
+        "ConcurrentHashMap is not well supported on at least one available platform."
+            + " For this reason, Collections.synchronizedMap is suggested to be used"
+            + " in its place for better cross-platform compatibility.",
     severity = WARNING)
 public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClassTreeMatcher,
     VariableTreeMatcher {
