@@ -35,12 +35,12 @@ public class JodaTimeClassBanTest {
   }
 
   @Test
-  public void customCheckPositiveCases() {
+  public void positiveCases() {
     compilationHelper.addSourceFile("JodaTimeClassBanPositiveCases.java").doTest();
   }
 
   @Test
-  public void customCheckNegativeCases() {
+  public void negativeCases() {
     compilationHelper.addSourceFile("JodaTimeClassBanNegativeCases.java").doTest();
   }
 

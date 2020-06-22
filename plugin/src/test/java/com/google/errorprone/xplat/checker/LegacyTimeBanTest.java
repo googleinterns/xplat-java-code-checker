@@ -34,12 +34,12 @@ public class LegacyTimeBanTest {
   }
 
   @Test
-  public void customCheckPositiveCases() {
+  public void positiveCases() {
     compilationHelper.addSourceFile("LegacyTimeBanPositiveCases.java").doTest();
   }
 
   @Test
-  public void customCheckNegativeCases() {
+  public void negativeCases() {
     compilationHelper.addSourceFile("LegacyTimeBanNegativeCases.java").doTest();
   }
 

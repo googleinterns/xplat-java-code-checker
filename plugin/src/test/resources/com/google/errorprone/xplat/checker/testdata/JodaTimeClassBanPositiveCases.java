@@ -134,14 +134,14 @@ public class JodaTimeClassBanPositiveCases {
 
   }
 
-  private class Illegial {
+  private class Illegal {
 
     // BUG: Diagnostic contains: Use of org.joda.time.Chronology
     private Chronology chrono;
 
     // tests a created method that has a parameter with a banned type
     // BUG: Diagnostic contains: Use of org.joda.time.Chronology
-    public Illegial(Chronology chrono) {
+    public Illegal(Chronology chrono) {
       this.chrono = chrono;
     }
 
@@ -152,7 +152,7 @@ public class JodaTimeClassBanPositiveCases {
     }
   }
 
-  private class Illegial2 {
+  private class Illegal2 {
 
     // tests a banned field from a banned package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
@@ -160,7 +160,7 @@ public class JodaTimeClassBanPositiveCases {
 
     // tests a created method that has a parameter with a banned type from a package
     // BUG: Diagnostic contains: Use of org.joda.time.tz
-    public Illegial2(FixedDateTimeZone time) {
+    public Illegal2(FixedDateTimeZone time) {
       this.time = time;
     }
 
