@@ -12,3 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+package com.google.errorprone.xplat.checker.testdata;
+
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Calendar.Builder;
+
+public class J2objcMethodNamePositiveCases {
+
+  private int test;
+
+  public J2objcMethodNamePositiveCases(int x) {
+    this.test = x;
+  }
+
+  public HashMap<Object, Set<String>> hello() {
+    return new HashMap<Object, Set<String>>();
+  }
+
+  public HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {
+    return x;
+  }
+
+  private static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
+      HashMap<Object, Set<String>> y,
+      HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
+      HashMap<Object, Set<String>> r,
+      HashMap<Object, Set<String>> s, HashMap<Object, Set<String>> t,
+      HashMap<Object, Set<String>> u, HashMap<Object, Set<String>> v) {
+    return x;
+  }
+
+  private class Test {
+
+    public Calendar.Builder hello2(Calendar.Builder x) {
+      return x;
+    }
+  }
+}

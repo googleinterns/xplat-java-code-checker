@@ -20,7 +20,10 @@ import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.matchers.Description;
+import com.google.errorprone.matchers.Matcher;
+import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
 
 @BugPattern(
     name = "J2ObjCMethodName",
@@ -32,8 +35,26 @@ import com.sun.source.tree.MethodTree;
     severity = WARNING)
 public class J2objcMethodName extends BugChecker implements MethodTreeMatcher {
 
+
+  private static class MethodNameMatcher implements Matcher<Tree> {
+
+    @Override
+    public boolean matches(Tree tree, VisitorState state) {
+      System.out.println(ASTHelpers.getSymbol(tree));
+
+      return true;
+    }
+  }
+
+  private static final Matcher<Tree> MATCHER = new MethodNameMatcher();
+
+
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
+    if (MATCHER.matches(tree, state)) {
+      System.out.println("found");
+    }
+    
     return Description.NO_MATCH;
   }
 }
