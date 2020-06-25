@@ -28,10 +28,11 @@ import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import javax.lang.model.type.TypeKind;
 
 @BugPattern(
     name = "J2ObjCMethodName",
@@ -92,18 +93,24 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher {
         continue;
       }
 
-      String typeStr = type.toString();
+      if (type.getKind() == TypeKind.TYPEVAR) {
+        newList.add("Id");
+      } else {
 
-      if (typeStr != null) {
-        int index = typeStr.indexOf("<");
+        String typeStr = type.toString();
 
-        if (index != -1) {
-          newList.add(packageToCamelCase(
-              typeStr.substring(0, index),
-              ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
-        } else {
-          newList.add(packageToCamelCase(
-              typeStr, ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
+        if (typeStr != null) {
+          int index = typeStr.indexOf("<");
+
+          if (index != -1) {
+            newList.add(packageToCamelCase(
+                typeStr.substring(0, index),
+                ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
+          } else {
+            newList.add(packageToCamelCase(
+                typeStr,
+                ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
+          }
         }
       }
     }
@@ -117,36 +124,40 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher {
     for (int i = 0; i < argList.size(); i++) {
       if (i == 0) {
         output.append("With");
-        output.append(argList.get(i));
       } else {
         output.append("_with");
-        output.append(argList.get(i));
       }
+      output.append(argList.get(i));
     }
 
     output.append("_");
     return output.toString();
   }
 
-  @Override
+  private String methodNameMangle(MethodTree tree) {
+    StringBuilder output = new StringBuilder();
 
+    Symbol symbol = ASTHelpers.getSymbol(tree);
+
+    output.append(packageToCamelCase(ASTHelpers.enclosingClass(symbol).toString(),
+        ASTHelpers.outermostClass(symbol).toString()));
+    output.append("_");
+
+    if (tree.getParameters().isEmpty()) {
+      output.append(symbol.name);
+    } else {
+      output.append(nameAndArgsToCamelCase(symbol.name.toString(),
+          paramatersToCamelCase(tree.getParameters())));
+    }
+    return output.toString();
+
+  }
+
+  @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
       System.out.println(ASTHelpers.getSymbol(tree).name);
-
-      System.out.print(
-          packageToCamelCase(ASTHelpers.enclosingClass(ASTHelpers.getSymbol(tree)).toString(),
-              ASTHelpers.outermostClass(ASTHelpers.getSymbol(tree)).toString()));
-
-      System.out.print("_");
-
-      if (tree.getParameters().isEmpty()) {
-        System.out.print(ASTHelpers.getSymbol(tree).name);
-      } else {
-        System.out.print(nameAndArgsToCamelCase(ASTHelpers.getSymbol(tree).name.toString(),
-            paramatersToCamelCase(tree.getParameters())));
-      }
-
+      System.out.println(methodNameMangle(tree));
       System.out.println();
     }
 

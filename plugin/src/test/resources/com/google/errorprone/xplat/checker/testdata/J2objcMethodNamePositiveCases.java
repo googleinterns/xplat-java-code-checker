@@ -65,4 +65,16 @@ public class J2objcMethodNamePositiveCases {
       }
     }
   }
+
+  private class Generics {
+
+    private <T> T genericTest(T x) {
+      return x;
+    }
+
+
+    private <E> E genericTest(E x, E y) {
+      return y;
+    }
+  }
 }
