@@ -31,11 +31,11 @@ public class J2objcMethodNamePositiveCases {
     return new HashMap<Object, Set<String>>();
   }
 
-  public HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {
+  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {
     return x;
   }
 
-  private static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
+  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
       HashMap<Object, Set<String>> y,
       HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
       HashMap<Object, Set<String>> r,
@@ -44,10 +44,25 @@ public class J2objcMethodNamePositiveCases {
     return x;
   }
 
+  private static void hi() {
+    return;
+  }
+
   private class Test {
 
-    public Calendar.Builder hello2(Calendar.Builder x) {
+    public void hello1(Calendar.Builder x) {
+      return;
+    }
+
+    private Calendar.Builder hello2(Calendar.Builder x) {
       return x;
+    }
+
+    private class Test2 {
+
+      private int testception() {
+        return 1;
+      }
     }
   }
 }

@@ -15,15 +15,23 @@ package com.google.errorprone.xplat.checker;
 
 import static com.google.errorprone.BugPattern.SeverityLevel.WARNING;
 
+import com.google.common.base.Splitter;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
+import com.google.errorprone.matchers.Matchers;
+import com.google.errorprone.matchers.MethodVisibility.Visibility;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
+import com.sun.tools.javac.code.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @BugPattern(
     name = "J2ObjCMethodName",
@@ -36,25 +44,112 @@ import com.sun.source.tree.Tree;
 public class J2objcMethodName extends BugChecker implements MethodTreeMatcher {
 
 
-  private static class MethodNameMatcher implements Matcher<Tree> {
+  private static final Matcher<MethodTree> MATCHER =
+      Matchers.anyOf(
+          Matchers.isStatic(),
+          Matchers.methodHasVisibility(Visibility.PRIVATE)
+      );
 
-    @Override
-    public boolean matches(Tree tree, VisitorState state) {
-      System.out.println(ASTHelpers.getSymbol(tree));
+  private String packageToCamelCase(String enclosingClass, String outermostClass) {
+    StringBuilder newName = new StringBuilder();
+    Iterable<String> packageParts = Splitter.on('.').split(outermostClass);
 
-      return true;
+    for (String part : packageParts) {
+      if (part.length() > 1) {
+        newName.append(part.substring(0, 1).toUpperCase());
+        newName.append(part.substring(1));
+      } else {
+        newName.append(part.toUpperCase());
+      }
     }
+
+    if (outermostClass.length() < enclosingClass.length()) {
+      Iterable<String> remainingParts = Splitter.on('.')
+          .split(enclosingClass.substring(outermostClass.length() + 1));
+
+      for (String part : remainingParts) {
+        if (part.length() > 1) {
+          newName.append("_");
+          newName.append(part.substring(0, 1).toUpperCase());
+          newName.append(part.substring(1));
+        } else {
+          newName.append("_");
+          newName.append(part.toUpperCase());
+        }
+      }
+    }
+
+    return newName.toString();
   }
 
-  private static final Matcher<Tree> MATCHER = new MethodNameMatcher();
+  private List<String> paramatersToCamelCase(List<? extends VariableTree> paramList) {
+    List<String> newList = new ArrayList<>();
 
+    for (VariableTree var : paramList) {
+      Type type = ASTHelpers.getType(var);
+
+      if (type == null) {
+        continue;
+      }
+
+      String typeStr = type.toString();
+
+      if (typeStr != null) {
+        int index = typeStr.indexOf("<");
+
+        if (index != -1) {
+          newList.add(packageToCamelCase(
+              typeStr.substring(0, index),
+              ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
+        } else {
+          newList.add(packageToCamelCase(
+              typeStr, ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
+        }
+      }
+    }
+
+    return newList;
+  }
+
+  private String nameAndArgsToCamelCase(String name, List<String> argList) {
+    StringBuilder output = new StringBuilder(name);
+
+    for (int i = 0; i < argList.size(); i++) {
+      if (i == 0) {
+        output.append("With");
+        output.append(argList.get(i));
+      } else {
+        output.append("_with");
+        output.append(argList.get(i));
+      }
+    }
+
+    output.append("_");
+    return output.toString();
+  }
 
   @Override
+
   public Description matchMethod(MethodTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
-      System.out.println("found");
+      System.out.println(ASTHelpers.getSymbol(tree).name);
+
+      System.out.print(
+          packageToCamelCase(ASTHelpers.enclosingClass(ASTHelpers.getSymbol(tree)).toString(),
+              ASTHelpers.outermostClass(ASTHelpers.getSymbol(tree)).toString()));
+
+      System.out.print("_");
+
+      if (tree.getParameters().isEmpty()) {
+        System.out.print(ASTHelpers.getSymbol(tree).name);
+      } else {
+        System.out.print(nameAndArgsToCamelCase(ASTHelpers.getSymbol(tree).name.toString(),
+            paramatersToCamelCase(tree.getParameters())));
+      }
+
+      System.out.println();
     }
-    
+
     return Description.NO_MATCH;
   }
 }
