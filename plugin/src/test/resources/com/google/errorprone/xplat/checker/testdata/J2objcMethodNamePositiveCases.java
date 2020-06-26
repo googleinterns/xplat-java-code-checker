@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Calendar.Builder;
 
-@ObjectiveCName("Hmm")
+//@ObjectiveCName("Hmm")
 public class J2objcMethodNamePositiveCases {
 
   private int test;

@@ -20,6 +20,7 @@ import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.ClassTreeMatcher;
+import com.google.errorprone.bugpatterns.BugChecker.CompilationUnitTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
@@ -28,6 +29,7 @@ import com.google.errorprone.matchers.MethodVisibility.Visibility;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
@@ -48,9 +50,12 @@ import javax.lang.model.type.TypeKind;
             + " types. This checker calls out problematic methods.",
     severity = WARNING)
 public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
-    ClassTreeMatcher {
+    ClassTreeMatcher, CompilationUnitTreeMatcher {
 
   private final Map<String, String> foundObjcClassNames = new HashMap<>();
+
+  private boolean packageAnnotationFound = false;
+  private String packageAnnotation;
 
   private static final Matcher<MethodTree> MATCHER =
       Matchers.anyOf(
@@ -61,11 +66,14 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
   private static final Matcher<Tree> OBJC_NAME_MATCHER =
       Matchers.hasAnnotation("com.google.j2objc.annotations.ObjectiveCName");
 
-  private String packageToCamelCase(String enclosingClass, String outermostClass, Symbol symbol) {
+  private String classToCamelCase(String enclosingClass, String outermostClass, Symbol symbol) {
     StringBuilder newName = new StringBuilder();
 
     if (foundObjcClassNames.containsKey(symbol.outermostClass().getSimpleName().toString())) {
       newName.append(foundObjcClassNames.get(symbol.outermostClass().getSimpleName().toString()));
+    } else if (packageAnnotationFound) {
+      newName.append(packageAnnotation);
+      newName.append(symbol.outermostClass().getSimpleName());
     } else {
       Iterable<String> packageParts = Splitter.on('.').split(outermostClass);
 
@@ -94,7 +102,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return newName.toString();
   }
 
-  private String packageToCamelCase(String enclosingClass, String outermostClass) {
+  private String typeToCamelCase(String enclosingClass, String outermostClass) {
     StringBuilder newName = new StringBuilder();
     Iterable<String> packageParts = Splitter.on('.').split(outermostClass);
 
@@ -137,11 +145,11 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
           int index = typeStr.indexOf("<");
 
           if (index != -1) {
-            newList.add(packageToCamelCase(
+            newList.add(typeToCamelCase(
                 typeStr.substring(0, index),
                 ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
           } else {
-            newList.add(packageToCamelCase(
+            newList.add(typeToCamelCase(
                 typeStr,
                 ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType())).toString()));
           }
@@ -176,7 +184,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     if (foundObjcClassNames.containsKey(symbol.enclClass().getSimpleName().toString())) {
       output.append(foundObjcClassNames.get(symbol.enclClass().getSimpleName().toString()));
     } else {
-      output.append(packageToCamelCase(symbol.enclClass().toString(),
+      output.append(classToCamelCase(symbol.enclClass().toString(),
           symbol.outermostClass().toString(), symbol));
     }
 
@@ -205,7 +213,6 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
-      //System.out.println(ASTHelpers.getSymbol(tree).enclClass());
       System.out.println(ASTHelpers.getSymbol(tree).name);
       System.out.println(methodNameMangle(tree, state));
       System.out.println();
@@ -214,6 +221,10 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return Description.NO_MATCH;
   }
 
+  /**
+   * Looks  for an ObjectiveCName annotation on a class. If one is found, stores the class name as
+   * the key and the annotation value as the value in the map foundObjcClassNames.
+   */
   @Override
   public Description matchClass(ClassTree tree, VisitorState state) {
     if (OBJC_NAME_MATCHER.matches(tree, state)) {
@@ -229,4 +240,24 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
     return Description.NO_MATCH;
   }
+
+  /**
+   * Looks for an ObjectiveCName annotation on a package. If one is found, stores true in
+   * packageAnnotationFound and the value in packageAnnotation.
+   */
+  @Override
+  public Description matchCompilationUnit(CompilationUnitTree tree, VisitorState state) {
+    for (AnnotationTree annTree : tree.getPackageAnnotations()) {
+      if (state.getSourceForNode(annTree.getAnnotationType()).equals("ObjectiveCName")) {
+        this.packageAnnotationFound = true;
+        String value = annTree.getArguments().toString();
+        this.packageAnnotation = value.substring(value.indexOf("\"") + 1, value.lastIndexOf("\""));
+        break;
+      }
+    }
+
+    return Description.NO_MATCH;
+  }
+
+
 }

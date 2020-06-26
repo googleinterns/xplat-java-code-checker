@@ -37,12 +37,14 @@ public class J2objcMethodNameTest {
 
   @Test
   public void positiveCases() {
-    compilationHelper.addSourceFile("J2objcMethodNamePositiveCases.java").doTest();
+    compilationHelper.addSourceFile("J2objcMethodNamePositiveCases.java")
+        .addSourceFile("package-info.java").doTest();
   }
 
   @Test
   public void negativeCases() {
-    compilationHelper.addSourceFile("J2objcMethodNameNegativeCases.java").doTest();
+    compilationHelper.addSourceFile("J2objcMethodNameNegativeCases.java")
+        .addSourceFile("package-info.java").doTest();
   }
 
 }
