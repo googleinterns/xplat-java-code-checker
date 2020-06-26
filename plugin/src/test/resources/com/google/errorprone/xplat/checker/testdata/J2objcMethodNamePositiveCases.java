@@ -14,11 +14,13 @@
 
 package com.google.errorprone.xplat.checker.testdata;
 
+import com.google.j2objc.annotations.ObjectiveCName;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Calendar.Builder;
 
+@ObjectiveCName("Hmm")
 public class J2objcMethodNamePositiveCases {
 
   private int test;
@@ -35,6 +37,7 @@ public class J2objcMethodNamePositiveCases {
     return x;
   }
 
+  @ObjectiveCName("Fixed")
   private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
       HashMap<Object, Set<String>> y,
       HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
@@ -48,6 +51,7 @@ public class J2objcMethodNamePositiveCases {
     return;
   }
 
+  @ObjectiveCName("Middleclass")
   private class Test {
 
     public void hello1(Calendar.Builder x) {
@@ -58,6 +62,7 @@ public class J2objcMethodNamePositiveCases {
       return x;
     }
 
+    //@ObjectiveCName("ChangedName")
     private class Test2 {
 
       private int testception() {
@@ -75,6 +80,10 @@ public class J2objcMethodNamePositiveCases {
 
     private <E> E genericTest(E x, E y) {
       return y;
+    }
+
+    private <T, E> T genericTest(E x, T y, T z) {
+      return z;
     }
   }
 }
