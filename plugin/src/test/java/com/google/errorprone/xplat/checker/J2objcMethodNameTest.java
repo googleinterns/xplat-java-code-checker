@@ -14,9 +14,11 @@
 
 package com.google.errorprone.xplat.checker;
 
+import com.google.errorprone.BugCheckerRefactoringTestHelper;
 import com.google.errorprone.CompilationTestHelper;
 
 
+import com.google.j2objc.annotations.ObjectiveCName;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,13 +40,50 @@ public class J2objcMethodNameTest {
   @Test
   public void positiveCases() {
     compilationHelper.addSourceFile("J2objcMethodNamePositiveCases.java")
-        .addSourceFile("package-info.java").doTest();
+//        .addSourceLines("package-info.java",
+//            "@ObjectiveCName(\"XPT\")",
+//            "package com.google.errorprone.xplat.checker.testdata;",
+//            "import com.google.j2objc.annotations.ObjectiveCName;")
+        .doTest();
   }
 
   @Test
   public void negativeCases() {
-    compilationHelper.addSourceFile("J2objcMethodNameNegativeCases.java")
-        .addSourceFile("package-info.java").doTest();
+    compilationHelper.addSourceFile("J2objcMethodNameNegativeCases.java").doTest();
+  }
+
+  @Test
+  public void refactorLongMethod() {
+    BugCheckerRefactoringTestHelper.newInstance(new J2objcMethodName(), getClass())
+        .addInputLines("Test.java",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class Test {",
+            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,\n"
+                + "      HashMap<Object, Set<String>> y,\n"
+                + "      HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,\n"
+                + "      HashMap<Object, Set<String>> r,\n"
+                + "      HashMap<Object, Set<String>> s, HashMap<Object, Set<String>> t,\n"
+                + "      HashMap<Object, Set<String>> u, HashMap<Object, Set<String>> v) {\n",
+            "    return x;",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import com.google.j2objc.annotations.ObjectiveCName;",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class Test {",
+            "  @ObjectiveCName(\"hello\")",
+            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,\n"
+                + "      HashMap<Object, Set<String>> y,\n"
+                + "      HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,\n"
+                + "      HashMap<Object, Set<String>> r,\n"
+                + "      HashMap<Object, Set<String>> s, HashMap<Object, Set<String>> t,\n"
+                + "      HashMap<Object, Set<String>> u, HashMap<Object, Set<String>> v) {\n",
+            "    return x;",
+            "  }",
+            "}")
+        .doTest();
   }
 
 }
