@@ -17,6 +17,7 @@ import static com.google.errorprone.BugPattern.SeverityLevel.WARNING;
 
 import com.google.common.base.Splitter;
 import com.google.errorprone.BugPattern;
+import com.google.errorprone.ErrorProneFlags;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.ClassTreeMatcher;
@@ -41,8 +42,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.lang.model.type.TypeKind;
 
+/**
+ * -XepOpt:J2ObjCMethodName:MethodNameLength=104
+ */
 @BugPattern(
     name = "J2ObjCMethodName",
     summary = "Warns against long J2ObjC translated methods.",
@@ -60,6 +65,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
   private String packageAnnotation;
 
+  private int methodNameLength = 300;
+
   private static final Matcher<MethodTree> MATCHER =
       Matchers.anyOf(
           Matchers.isStatic(),
@@ -68,6 +75,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
   private static final Matcher<Tree> OBJC_NAME_MATCHER =
       Matchers.hasAnnotation("com.google.j2objc.annotations.ObjectiveCName");
+
 
   private String classToCamelCase(String enclosingClass, String outermostClass, Symbol symbol) {
     StringBuilder newName = new StringBuilder();
@@ -223,6 +231,15 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     }
   }
 
+  public J2objcMethodName(ErrorProneFlags flags) {
+
+    Optional<Integer> arg = flags.getInteger("J2ObjCMethodName:MethodNameLength");
+
+    if (arg.isPresent()) {
+      this.methodNameLength = arg.get();
+    }
+  }
+
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {
@@ -236,7 +253,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
         return buildDescription(tree)
             .setMessage(String.format("This method should likely be refactored to have fewer"
-                + " parameters and its name will be %d characters g when translated to"
+                + " parameters and its name will be %d characters when translated to"
                 + " Objective-C: %s", mangledName.length(), mangledName))
             .addFix(SuggestedFix.builder()
                 .addImport("com.google.j2objc.annotations.ObjectiveCName")
@@ -247,7 +264,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
                         getMethodName(tree.getName().toString())))
                 .build())
             .build();
-      } else if (mangledName.length() >= 300) {
+      } else if (mangledName.length() >= methodNameLength) {
         return buildDescription(tree)
             .setMessage(String.format("This method name will be %d characters when translated to"
                 + " Objective-C: %s", mangledName.length(), mangledName))

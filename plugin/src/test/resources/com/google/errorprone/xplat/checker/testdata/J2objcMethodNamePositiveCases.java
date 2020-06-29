@@ -20,25 +20,10 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Calendar.Builder;
 
-//@ObjectiveCName("Hmm")
 public class J2objcMethodNamePositiveCases {
 
-  private int test;
-
-  public J2objcMethodNamePositiveCases(int x) {
-    this.test = x;
-  }
-
-  public HashMap<Object, Set<String>> hello() {
-    return new HashMap<Object, Set<String>>();
-  }
-
-  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {
-    return x;
-  }
-
-  @ObjectiveCName("Fixed")
-  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
+  // BUG: Diagnostic contains: This method should likely be refactored to have fewer parameters
+  static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
       HashMap<Object, Set<String>> y,
       HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
       HashMap<Object, Set<String>> r,
@@ -47,41 +32,14 @@ public class J2objcMethodNamePositiveCases {
     return x;
   }
 
-  private static void hi() {
-    return;
-  }
-
-  @ObjectiveCName("Middleclass")
-  private class Test {
-
-    public void hello1(Calendar.Builder x) {
-      return;
-    }
-
-    private Calendar.Builder hello2(Calendar.Builder x) {
-      return x;
-    }
-
-    //@ObjectiveCName("ChangedName")
-    private class Test2 {
-
-      private int testception() {
-        return 1;
-      }
-    }
-  }
-
   private class Generics {
 
-    private <T> T genericTest(T x) {
-      return x;
-    }
-
-
+    // BUG: Diagnostic contains: This method name will be 103 characters
     private <E> E genericTest(E x, E y) {
       return y;
     }
 
+    // BUG: Diagnostic contains: This method name will be 110 characters
     private <T, E> T genericTest(E x, T y, T z) {
       return z;
     }

@@ -14,18 +14,19 @@
 
 package com.google.errorprone.xplat.checker;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.BugCheckerRefactoringTestHelper;
 import com.google.errorprone.CompilationTestHelper;
 
 
-import com.google.j2objc.annotations.ObjectiveCName;
+import com.google.errorprone.ErrorProneFlags;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Unit tests for {@link MyCustomCheck}.
+ * Unit tests for {@link J2objcMethodName}.
  */
 @RunWith(JUnit4.class)
 public class J2objcMethodNameTest {
@@ -40,10 +41,7 @@ public class J2objcMethodNameTest {
   @Test
   public void positiveCases() {
     compilationHelper.addSourceFile("J2objcMethodNamePositiveCases.java")
-//        .addSourceLines("package-info.java",
-//            "@ObjectiveCName(\"XPT\")",
-//            "package com.google.errorprone.xplat.checker.testdata;",
-//            "import com.google.j2objc.annotations.ObjectiveCName;")
+        .setArgs(ImmutableList.of("-XepOpt:J2ObjCMethodName:MethodNameLength=100"))
         .doTest();
   }
 
@@ -53,8 +51,27 @@ public class J2objcMethodNameTest {
   }
 
   @Test
+  public void checkNameMangle() {
+    compilationHelper.addSourceFile("J2objcMethodNameMangle.java")
+        .setArgs(ImmutableList.of("-XepOpt:J2ObjCMethodName:MethodNameLength=-1"))
+        .doTest();
+  }
+
+  @Test
+  public void checkNameManglePackage() {
+    compilationHelper.addSourceFile("J2objcMethodNameManglePackage.java")
+        .setArgs(ImmutableList.of("-XepOpt:J2ObjCMethodName:MethodNameLength=-1"))
+        .addSourceLines("package-info.java",
+            "@ObjectiveCName(\"XPT\")",
+            "package com.google.errorprone.xplat.checker.testdata;",
+            "import com.google.j2objc.annotations.ObjectiveCName;")
+        .doTest();
+  }
+
+  @Test
   public void refactorLongMethod() {
-    BugCheckerRefactoringTestHelper.newInstance(new J2objcMethodName(), getClass())
+    BugCheckerRefactoringTestHelper
+        .newInstance(new J2objcMethodName(ErrorProneFlags.empty()), getClass())
         .addInputLines("Test.java",
             "import java.util.HashMap;",
             "import java.util.Set;",
