@@ -38,13 +38,13 @@ import java.util.Optional;
 
 /**
  * Checks for usage of ConcurrentHashMap and suggests the use of Collections.synchronizedMap.
- * ConcurrentHashMap is not well supported on at least one available platform.
+ * ConcurrentHashMap is not well supported on iOS.
  */
 @BugPattern(
     name = "UnnecessaryConcurrentHashMap",
     summary = "Suggests the use of Collections.synchronizedMap instead of ConcurrentHashMap.",
     explanation =
-        "ConcurrentHashMap is not well supported on at least one available platform."
+        "ConcurrentHashMap is not well supported on iOS."
             + " For this reason, Collections.synchronizedMap is suggested to be used"
             + " in its place for better cross-platform compatibility.",
     severity = WARNING)
@@ -64,7 +64,7 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
       );
 
   private static final String STANDARD_MESSAGE =
-      "ConcurrentHashMap is not advised for cross platform use. Use"
+      "ConcurrentHashMap is not well supported on iOS. Use"
           + " Collections.synchronizedMap instead.";
 
   private Description standardDescription(Tree tree, SuggestedFix fix, String message) {
@@ -164,7 +164,8 @@ public class UnnecessaryConcurrentHashMap extends BugChecker implements NewClass
 
       return Optional.of(buildDescription(origin)
           .setMessage("This variable is declared with an interface that is not compatible"
-              + " with Collections.synchronizedMap, which is advised over ConcurrentHashMap.")
+              + " with Collections.synchronizedMap, which is suggested to be used"
+              + " in the previous warning.")
           .addFix(SuggestedFix.builder()
               .addImport("java.util.Map")
               .replace(

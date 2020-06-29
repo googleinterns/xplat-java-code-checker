@@ -69,6 +69,30 @@ public class UnnecessaryConcurrentHashMapTest {
   }
 
   @Test
+  public void refactorSameLineMap() {
+    BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
+        .addInputLines("Test.java",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "import java.util.Map;",
+            "class Test {",
+            "  private void test() {",
+            "    Map<String, Integer> map = new ConcurrentHashMap<>();",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import java.util.Collections;",
+            "import java.util.HashMap;",
+            "import java.util.Map;",
+            "import java.util.concurrent.ConcurrentHashMap;",
+            "class Test {",
+            "  private void test() {",
+            "    Map<String, Integer> map = Collections.synchronizedMap(new HashMap<>());",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
   public void refactorSameLineConcurrentMap() {
     BugCheckerRefactoringTestHelper.newInstance(new UnnecessaryConcurrentHashMap(), getClass())
         .addInputLines("Test.java",
