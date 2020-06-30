@@ -14,6 +14,8 @@
 
 package com.google.errorprone.xplat.checker;
 
+import static com.google.errorprone.BugCheckerRefactoringTestHelper.TestMode.TEXT_MATCH;
+
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.BugCheckerRefactoringTestHelper;
 import com.google.errorprone.CompilationTestHelper;
@@ -47,7 +49,9 @@ public class J2objcMethodNameTest {
 
   @Test
   public void negativeCases() {
-    compilationHelper.addSourceFile("J2objcMethodNameNegativeCases.java").doTest();
+    compilationHelper.addSourceFile("J2objcMethodNameNegativeCases.java")
+        .setArgs(ImmutableList.of("-XepOpt:J2ObjCMethodName:MethodNameLength=100"))
+        .doTest();
   }
 
   @Test
@@ -69,7 +73,7 @@ public class J2objcMethodNameTest {
   }
 
   @Test
-  public void refactorLongMethod() {
+  public void refactorManyParams() {
     BugCheckerRefactoringTestHelper
         .newInstance(new J2objcMethodName(ErrorProneFlags.empty()), getClass())
         .addInputLines("Test.java",
@@ -98,6 +102,108 @@ public class J2objcMethodNameTest {
                 + "      HashMap<Object, Set<String>> s, HashMap<Object, Set<String>> t,\n"
                 + "      HashMap<Object, Set<String>> u, HashMap<Object, Set<String>> v) {\n",
             "    return x;",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
+  public void refactorMethodGivenArg() {
+    BugCheckerRefactoringTestHelper
+        .newInstance(new J2objcMethodName(
+            ErrorProneFlags.builder()
+                .putFlag("J2ObjCMethodName:MethodNameLength", "10")
+                .build()), getClass())
+        .addInputLines("Test.java",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class Test {",
+            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "    return x;",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import com.google.j2objc.annotations.ObjectiveCName;",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class Test {",
+            "  @ObjectiveCName(\"hello\")",
+            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "    return x;",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
+  public void refactorMethodDefaultArg() {
+    BugCheckerRefactoringTestHelper
+        .newInstance(new J2objcMethodName(ErrorProneFlags.empty()), getClass())
+        .addInputLines(
+            "AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStop.java",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStop {",
+            "  private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNested {",
+            "    private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNestedTwice {",
+            "      private HashMap<Object, Set<String>> thisMethodHasAPrettyLongNameAsWell"
+                + "(HashMap<Object, Set<String>> x, HashMap<Object, Set<String>> y,"
+                + " HashMap<Object, Set<String>> z) {",
+            "        return x;",
+            "      }",
+            "    }",
+            "  }",
+            "}")
+        .addOutputLines(
+            "AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStop.java",
+            "import com.google.j2objc.annotations.ObjectiveCName;",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStop {",
+            "  private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNested {",
+            "    private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNestedTwice {",
+            "      @ObjectiveCName(\"thisMethodHasAPrettyLongNameAsWell\")",
+            "      private HashMap<Object, Set<String>> thisMethodHasAPrettyLongNameAsWell"
+                + "(HashMap<Object, Set<String>> x, HashMap<Object, Set<String>> y,"
+                + " HashMap<Object, Set<String>> z) {",
+            "        return x;",
+            "      }",
+            "    }",
+            "  }",
+            "}")
+        .doTest(TEXT_MATCH);
+  }
+
+  @Test
+  public void refactorMethodSameName() {
+    BugCheckerRefactoringTestHelper
+        .newInstance(new J2objcMethodName(
+            ErrorProneFlags.builder()
+                .putFlag("J2ObjCMethodName:MethodNameLength", "10")
+                .build()), getClass())
+        .addInputLines("Test.java",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class Test {",
+            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "    return x;",
+            "  }",
+            "  private HashMap<Object, Set<String>> hello() {\n",
+            "    return new HashMap<>();",
+            "  }",
+            "}")
+        .addOutputLines("Test.java",
+            "import com.google.j2objc.annotations.ObjectiveCName;",
+            "import java.util.HashMap;",
+            "import java.util.Set;",
+            "class Test {",
+            "  @ObjectiveCName(\"hello\")",
+            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "    return x;",
+            "  }",
+            "  @ObjectiveCName(\"hello2\")",
+            "  private HashMap<Object, Set<String>> hello() {\n",
+            "    return new HashMap<>();",
             "  }",
             "}")
         .doTest();

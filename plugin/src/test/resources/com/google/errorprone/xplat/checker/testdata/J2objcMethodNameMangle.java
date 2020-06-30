@@ -41,11 +41,6 @@ public class J2objcMethodNameMangle {
     return x;
   }
 
-  public HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
-      HashMap<Object, Set<String>> y) {
-    return new HashMap<Object, Set<String>>();
-  }
-
   @ObjectiveCName("renamedMethod")
   // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_renamedMethod
   private static void hi() {
@@ -54,10 +49,6 @@ public class J2objcMethodNameMangle {
 
   @ObjectiveCName("Middleclass")
   private class Test {
-
-    public void hello1(Calendar.Builder x) {
-      return;
-    }
 
     // BUG: Diagnostic contains: Middleclass_hello2WithJavaUtilCalendar_Builder_
     private Calendar.Builder hello2(Calendar.Builder x) {

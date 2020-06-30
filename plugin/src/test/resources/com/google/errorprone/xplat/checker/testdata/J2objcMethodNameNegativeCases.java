@@ -22,10 +22,12 @@ import java.util.Set;
 public class J2objcMethodNameNegativeCases {
 
 
+  // public - unaffected
   public HashMap<Object, Set<String>> hello() {
     return new HashMap<Object, Set<String>>();
   }
 
+  // short name
   public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {
     return x;
   }
@@ -41,13 +43,16 @@ public class J2objcMethodNameNegativeCases {
     return x;
   }
 
+  // short name
   private static void hi() {
     return;
   }
 
+  // short names and class renamed
   @ObjectiveCName("Middleclass")
   private class Test {
 
+    // public - unaffected
     public void hello1(Calendar.Builder x) {
       return;
     }
@@ -66,17 +71,20 @@ public class J2objcMethodNameNegativeCases {
 
   private class Generics {
 
+    // short name
     private <T> T genericTest(T x) {
       return x;
     }
 
 
-    // Not long enough under default setting
+    // renamed to prevent issue
+    @ObjectiveCName("genericTest")
     private <E> E genericTest(E x, E y) {
       return y;
     }
 
-    // Not long enough under default setting
+    // renamed to prevent issue
+    @ObjectiveCName("genericTest2")
     private <T, E> T genericTest(E x, T y, T z) {
       return z;
     }
