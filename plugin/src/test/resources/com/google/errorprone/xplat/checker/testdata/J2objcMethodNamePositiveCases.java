@@ -23,7 +23,7 @@ import java.util.Calendar.Builder;
 public class J2objcMethodNamePositiveCases {
 
   // BUG: Diagnostic contains: This method should likely be refactored to have fewer parameters
-  static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
+  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
       HashMap<Object, Set<String>> y,
       HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
       HashMap<Object, Set<String>> r,
@@ -32,15 +32,15 @@ public class J2objcMethodNamePositiveCases {
     return x;
   }
 
-  private class Generics {
+  private static class Generics {
 
     // BUG: Diagnostic contains: This method name will be 103 characters
-    private <E> E genericTest(E x, E y) {
+    public static <E> E genericTest(E x, E y) {
       return y;
     }
 
     // BUG: Diagnostic contains: This method name will be 110 characters
-    private <T, E> T genericTest(E x, T y, T z) {
+    public static <T, E> T genericTest(E x, T y, T z) {
       return z;
     }
   }

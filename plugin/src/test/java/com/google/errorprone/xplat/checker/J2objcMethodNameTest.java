@@ -80,7 +80,7 @@ public class J2objcMethodNameTest {
             "import java.util.HashMap;",
             "import java.util.Set;",
             "class Test {",
-            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,\n"
+            "  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,\n"
                 + "      HashMap<Object, Set<String>> y,\n"
                 + "      HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,\n"
                 + "      HashMap<Object, Set<String>> r,\n"
@@ -95,7 +95,7 @@ public class J2objcMethodNameTest {
             "import java.util.Set;",
             "class Test {",
             "  @ObjectiveCName(\"hello\")",
-            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,\n"
+            "  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,\n"
                 + "      HashMap<Object, Set<String>> y,\n"
                 + "      HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,\n"
                 + "      HashMap<Object, Set<String>> r,\n"
@@ -118,7 +118,7 @@ public class J2objcMethodNameTest {
             "import java.util.HashMap;",
             "import java.util.Set;",
             "class Test {",
-            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
             "    return x;",
             "  }",
             "}")
@@ -128,7 +128,7 @@ public class J2objcMethodNameTest {
             "import java.util.Set;",
             "class Test {",
             "  @ObjectiveCName(\"hello\")",
-            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
             "    return x;",
             "  }",
             "}")
@@ -144,9 +144,9 @@ public class J2objcMethodNameTest {
             "import java.util.HashMap;",
             "import java.util.Set;",
             "class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStop {",
-            "  private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNested {",
-            "    private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNestedTwice {",
-            "      private HashMap<Object, Set<String>> thisMethodHasAPrettyLongNameAsWell"
+            "  private static class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNested {",
+            "    private static class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNestedTwice {",
+            "      public static HashMap<Object, Set<String>> thisMethodHasAPrettyLongNameAsWell"
                 + "(HashMap<Object, Set<String>> x, HashMap<Object, Set<String>> y,"
                 + " HashMap<Object, Set<String>> z) {",
             "        return x;",
@@ -160,10 +160,10 @@ public class J2objcMethodNameTest {
             "import java.util.HashMap;",
             "import java.util.Set;",
             "class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStop {",
-            "  private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNested {",
-            "    private class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNestedTwice {",
+            "  private static class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNested {",
+            "    private static class AReallyReallyLongNameOfAClassThatGoesOnForALongTimeAndNeverSeemsToStopNestedTwice {",
             "      @ObjectiveCName(\"thisMethodHasAPrettyLongNameAsWell\")",
-            "      private HashMap<Object, Set<String>> thisMethodHasAPrettyLongNameAsWell"
+            "      public static HashMap<Object, Set<String>> thisMethodHasAPrettyLongNameAsWell"
                 + "(HashMap<Object, Set<String>> x, HashMap<Object, Set<String>> y,"
                 + " HashMap<Object, Set<String>> z) {",
             "        return x;",
@@ -185,10 +185,10 @@ public class J2objcMethodNameTest {
             "import java.util.HashMap;",
             "import java.util.Set;",
             "class Test {",
-            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
             "    return x;",
             "  }",
-            "  private HashMap<Object, Set<String>> hello() {\n",
+            "  public static HashMap<Object, Set<String>> hello() {\n",
             "    return new HashMap<>();",
             "  }",
             "}")
@@ -198,11 +198,11 @@ public class J2objcMethodNameTest {
             "import java.util.Set;",
             "class Test {",
             "  @ObjectiveCName(\"hello\")",
-            "  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
+            "  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x) {\n",
             "    return x;",
             "  }",
             "  @ObjectiveCName(\"hello2\")",
-            "  private HashMap<Object, Set<String>> hello() {\n",
+            "  public static HashMap<Object, Set<String>> hello() {\n",
             "    return new HashMap<>();",
             "  }",
             "}")

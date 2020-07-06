@@ -22,7 +22,7 @@ import java.util.Set;
 public class J2objcMethodNameMangle {
 
   // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_hello
-  private static HashMap<Object, Set<String>> hello() {
+  public static HashMap<Object, Set<String>> hello() {
     return new HashMap<Object, Set<String>>();
   }
 
@@ -32,7 +32,7 @@ public class J2objcMethodNameMangle {
   }
 
   // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_helloWithJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_withJavaUtilHashMap_
-  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
+  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
       HashMap<Object, Set<String>> y,
       HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
       HashMap<Object, Set<String>> r,
@@ -43,56 +43,56 @@ public class J2objcMethodNameMangle {
 
   @ObjectiveCName("renamedMethod")
   // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_renamedMethod
-  private static void hi() {
+  public static void hi() {
     return;
   }
 
   @ObjectiveCName("Middleclass")
-  private class Test {
+  private static class Test {
 
     // BUG: Diagnostic contains: Middleclass_hello2WithJavaUtilCalendar_Builder_
-    private Calendar.Builder hello2(Calendar.Builder x) {
+    public static Calendar.Builder hello2(Calendar.Builder x) {
       return x;
     }
 
-    private class Test2 {
+    private static class Test2 {
 
       // BUG: Diagnostic contains: Middleclass_Test2_testception
-      private int testception() {
+      public static int testception() {
         return 1;
       }
     }
 
     @ObjectiveCName("DoubleNestedClass")
-    private class Test3 {
+    private static class Test3 {
 
       // BUG: Diagnostic contains: DoubleNestedClass_testAgain
-      private int testAgain() {
+      public static int testAgain() {
         return 1;
       }
 
       @ObjectiveCName("nestedRenamedMethod")
       // BUG: Diagnostic contains: DoubleNestedClass_nestedRenamedMethod
-      private void rename() {
+      public static void rename() {
 
       }
     }
   }
 
-  private class Generics {
+  private static class Generics {
 
     // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_Generics_genericTestWithId_
-    private <T> T genericTest(T x) {
+    public static <T> T genericTest(T x) {
       return x;
     }
 
     // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_Generics_genericTestWithId_withId_
-    private <E> E genericTest(E x, E y) {
+    public static <E> E genericTest(E x, E y) {
       return y;
     }
 
     // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_Generics_genericTestWithId_withId_withId_
-    private <T, E> T genericTest(E x, T y, T z) {
+    public static <T, E> T genericTest(E x, T y, T z) {
       return z;
     }
   }

@@ -22,7 +22,7 @@ import java.util.Set;
 public class J2objcMethodNameNegativeCases {
 
 
-  // public - unaffected
+  // private - unaffected
   public HashMap<Object, Set<String>> hello() {
     return new HashMap<Object, Set<String>>();
   }
@@ -34,7 +34,7 @@ public class J2objcMethodNameNegativeCases {
 
   // Name changed to prevent long name issue
   @ObjectiveCName("FixedName")
-  private HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
+  public static HashMap<Object, Set<String>> hello(HashMap<Object, Set<String>> x,
       HashMap<Object, Set<String>> y,
       HashMap<Object, Set<String>> z, HashMap<Object, Set<String>> q,
       HashMap<Object, Set<String>> r,
@@ -44,48 +44,47 @@ public class J2objcMethodNameNegativeCases {
   }
 
   // short name
-  private static void hi() {
+  public static void hi() {
     return;
   }
 
   // short names and class renamed
   @ObjectiveCName("Middleclass")
-  private class Test {
+  private static class Test {
 
-    // public - unaffected
-    public void hello1(Calendar.Builder x) {
+    // protected - unaffected
+    protected static void hello1(Calendar.Builder x) {
       return;
     }
 
-    private Calendar.Builder hello2(Calendar.Builder x) {
+    public static Calendar.Builder hello2(Calendar.Builder x) {
       return x;
     }
 
-    private class Test2 {
+    private static class Test2 {
 
-      private int testception() {
+      public static int testception() {
         return 1;
       }
     }
   }
 
-  private class Generics {
+  private static class Generics {
 
     // short name
-    private <T> T genericTest(T x) {
+    public static <T> T genericTest(T x) {
       return x;
     }
 
-
     // renamed to prevent issue
     @ObjectiveCName("genericTest")
-    private <E> E genericTest(E x, E y) {
+    public static <E> E genericTest(E x, E y) {
       return y;
     }
 
     // renamed to prevent issue
     @ObjectiveCName("genericTest2")
-    private <T, E> T genericTest(E x, T y, T z) {
+    public static <T, E> T genericTest(E x, T y, T z) {
       return z;
     }
   }

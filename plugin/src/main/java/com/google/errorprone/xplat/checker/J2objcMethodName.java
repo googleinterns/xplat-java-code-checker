@@ -74,9 +74,9 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
   private int methodNameLength = 300;
 
   private static final Matcher<MethodTree> MATCHER =
-      Matchers.anyOf(
+      Matchers.allOf(
           Matchers.isStatic(),
-          Matchers.methodHasVisibility(Visibility.PRIVATE)
+          Matchers.methodHasVisibility(Visibility.PUBLIC)
       );
 
   private static final Matcher<Tree> OBJC_NAME_MATCHER =
