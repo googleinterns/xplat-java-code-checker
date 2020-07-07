@@ -43,7 +43,8 @@ import com.sun.tools.javac.code.Type;
         "The usage of several legacy time classes are banned from cross platform development due"
             + " to incompatibilities. If one is sure that they must use one of them, the"
             + " @AllowLegacyTime annotation will override the error.",
-    severity = ERROR)
+    severity = ERROR,
+    suppressionAnnotations = AllowLegacyTime.class)
 public class LegacyTimeBan extends BugChecker implements MethodTreeMatcher, VariableTreeMatcher {
 
   private static final ImmutableSet<String> BANNED_CLASSES =
@@ -51,24 +52,18 @@ public class LegacyTimeBan extends BugChecker implements MethodTreeMatcher, Vari
           "java.util.GregorianCalendar", "java.util.TimeZone", "java.util.SimpleTimeZone");
 
   private static final Matcher<MethodTree> METHOD_MATCHER =
-      Matchers.allOf(
-          Matchers.anyOf(
-              BANNED_CLASSES.stream()
-                  .map(
-                      className ->
-                          Matchers.methodReturns(Matchers.isSameType(className)))
-                  .collect(toImmutableList())),
-          Matchers.not(Matchers.hasAnnotation(AllowLegacyTime.class.getCanonicalName()))
-      );
+      Matchers.anyOf(
+          BANNED_CLASSES.stream()
+              .map(
+                  className ->
+                      Matchers.methodReturns(Matchers.isSameType(className)))
+              .collect(toImmutableList()));
 
   private static final Matcher<VariableTree> VAR_MATCHER =
-      Matchers.allOf(
-          Matchers.anyOf(
-              BANNED_CLASSES.stream()
-                  .map(Matchers::isSameType)
-                  .collect(toImmutableList())),
-          Matchers.not(Matchers.hasAnnotation(AllowLegacyTime.class.getCanonicalName()))
-      );
+      Matchers.anyOf(
+          BANNED_CLASSES.stream()
+              .map(Matchers::isSameType)
+              .collect(toImmutableList()));
 
   private Description message(Tree tree, String className) {
     return buildDescription(tree)
@@ -78,7 +73,7 @@ public class LegacyTimeBan extends BugChecker implements MethodTreeMatcher, Vari
                 className))
         .build();
   }
-
+  
 
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {

@@ -24,7 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Unit tests for {@link MyCustomCheck}.
+ * Unit tests for {@link JodaTimeLocal}.
  */
 @RunWith(JUnit4.class)
 public class JodaTimeLocalTest {
