@@ -47,15 +47,26 @@ public class J2objcMethodNameMangle {
     return;
   }
 
+  // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_classParamsWithMiddleclass_withComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_Generics_
+  public static Test classParams(Test test, Generics generic) {
+    return test;
+  }
+
   @ObjectiveCName("Middleclass")
-  private static class Test {
+  public static class Test {
 
     // BUG: Diagnostic contains: Middleclass_hello2WithJavaUtilCalendar_Builder_
     public static Calendar.Builder hello2(Calendar.Builder x) {
       return x;
     }
 
-    private static class Test2 {
+    // BUG: Diagnostic contains: Middleclass_lotsOfLocalClassesWithMiddleclass_Test2_withComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_withDoubleNestedClass_
+    public static Test2 lotsOfLocalClasses(Test2 test2, J2objcMethodNameMangle nameMangle,
+        Test3 test3) {
+      return test2;
+    }
+
+    public static class Test2 {
 
       // BUG: Diagnostic contains: Middleclass_Test2_testception
       public static int testception() {
@@ -64,7 +75,7 @@ public class J2objcMethodNameMangle {
     }
 
     @ObjectiveCName("DoubleNestedClass")
-    private static class Test3 {
+    public static class Test3 {
 
       // BUG: Diagnostic contains: DoubleNestedClass_testAgain
       public static int testAgain() {
@@ -76,10 +87,22 @@ public class J2objcMethodNameMangle {
       public static void rename() {
 
       }
+
+      // BUG: Diagnostic contains: DoubleNestedClass_classArgsWithMiddleclass_withComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_
+      public static Test classArgs(Test test, J2objcMethodNameMangle nameMangle) {
+        return test;
+      }
     }
+
+    // BUG: Diagnostic contains: Middleclass_lotsOfLocalClassesBottomWithMiddleclass_Test2_withComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_withDoubleNestedClass_
+    public static Test2 lotsOfLocalClassesBottom(Test2 test2, J2objcMethodNameMangle nameMangle,
+        Test3 test3) {
+      return test2;
+    }
+
   }
 
-  private static class Generics {
+  public static class Generics {
 
     // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_Generics_genericTestWithId_
     public static <T> T genericTest(T x) {

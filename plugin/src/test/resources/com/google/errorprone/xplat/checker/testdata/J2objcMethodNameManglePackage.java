@@ -47,15 +47,26 @@ public class J2objcMethodNameManglePackage {
     return;
   }
 
+  // BUG: Diagnostic contains: XPTJ2objcMethodNameManglePackage_classParamsWithMiddleclass_withXPTJ2objcMethodNameManglePackage_Generics_
+  public static Test classParams(Test test, Generics generic) {
+    return test;
+  }
+
   @ObjectiveCName("Middleclass")
-  private static class Test {
+  public static class Test {
 
     // BUG: Diagnostic contains: Middleclass_hello2WithJavaUtilCalendar_Builder_
     public static Calendar.Builder hello2(Calendar.Builder x) {
       return x;
     }
 
-    private static class Test2 {
+    // BUG: Diagnostic contains: Middleclass_lotsOfLocalClassesWithMiddleclass_Test2_withXPTJ2objcMethodNameManglePackage_withDoubleNestedClass_
+    public static Test2 lotsOfLocalClasses(Test2 test2, J2objcMethodNameManglePackage nameMangle,
+        Test3 test3) {
+      return test2;
+    }
+
+    public static class Test2 {
 
       // BUG: Diagnostic contains: Middleclass_Test2_testception
       public static int testception() {
@@ -64,7 +75,7 @@ public class J2objcMethodNameManglePackage {
     }
 
     @ObjectiveCName("DoubleNestedClass")
-    private static class Test3 {
+    public static class Test3 {
 
       // BUG: Diagnostic contains: DoubleNestedClass_testAgain
       public static int testAgain() {
@@ -76,10 +87,24 @@ public class J2objcMethodNameManglePackage {
       public static void rename() {
 
       }
+
+      // BUG: Diagnostic contains: DoubleNestedClass_classArgsWithMiddleclass_withXPTJ2objcMethodNameManglePackage_
+      public static Test classArgs(Test test, J2objcMethodNameManglePackage nameMangle) {
+        return test;
+      }
     }
+
+    // BUG: Diagnostic contains: Middleclass_lotsOfLocalClassesBottomWithMiddleclass_Test2_withXPTJ2objcMethodNameManglePackage_withDoubleNestedClass_
+    public static Test2 lotsOfLocalClassesBottom(Test2 test2,
+        J2objcMethodNameManglePackage nameMangle,
+        Test3 test3) {
+      return test2;
+    }
+
   }
 
-  private static class Generics {
+
+  public static class Generics {
 
     // BUG: Diagnostic contains: XPTJ2objcMethodNameManglePackage_Generics_genericTestWithId_
     public static <T> T genericTest(T x) {

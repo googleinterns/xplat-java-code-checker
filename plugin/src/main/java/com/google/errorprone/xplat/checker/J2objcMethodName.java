@@ -29,6 +29,7 @@ import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
 import com.google.errorprone.matchers.MethodVisibility.Visibility;
 import com.google.errorprone.util.ASTHelpers;
+import com.google.j2objc.annotations.ObjectiveCName;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
@@ -40,9 +41,11 @@ import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.lang.model.type.TypeKind;
 
 /**
@@ -66,6 +69,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     ClassTreeMatcher, CompilationUnitTreeMatcher {
 
   private final Map<String, String> foundObjcClassNames = new HashMap<>();
+
+  private final Set<String> seenClasses = new HashSet<>();
 
   private final Map<String, Integer> usedMethodNames = new HashMap<>();
 
@@ -155,6 +160,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
     for (VariableTree var : paramList) {
       Type type = ASTHelpers.getType(var);
+      Symbol symbol = ASTHelpers.getSymbol(var);
+      Symbol typeSymbol = ASTHelpers.getSymbol(var.getType());
 
       if (type == null) {
         continue;
@@ -165,15 +172,29 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       } else {
         String typeStr = type.toString();
         ClassSymbol outermost = ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType()));
+        ClassSymbol containingClass = ASTHelpers.outermostClass(symbol);
 
-        if (outermost != null) {
-          int index = typeStr.indexOf("<");
+        if (outermost == null || containingClass == null) {
+          continue;
+        }
 
-          if (index != -1) {
-            newList.add(typeToCamelCase(typeStr.substring(0, index), outermost.toString()));
-          } else {
-            newList.add(typeToCamelCase(typeStr, outermost.toString()));
+        // If the type of the parameter is local to this class, uses classToCamelCase instead
+        if (outermost.equals(containingClass)) {
+          String className = typeSymbol.toString()
+              .substring(typeSymbol.toString().lastIndexOf(".") + 1);
+
+          ObjectiveCName[] objCNames = typeSymbol.enclClass()
+              .getAnnotationsByType(ObjectiveCName.class);
+
+          // If the class has not been visited yet, manually check if it has an ObjectiveCName
+          if (!seenClasses.contains(className) && objCNames.length != 0) {
+            foundObjcClassNames.put(className, objCNames[0].value());
+            seenClasses.add(className);
           }
+
+          newList.add(classToCamelCase(typeStr, outermost.toString(), symbol));
+        } else {
+          newList.add(typeToCamelCase(typeSymbol.enclClass().toString(), outermost.toString()));
         }
       }
     }
@@ -229,7 +250,6 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       }
     }
     return output.toString();
-
   }
 
   private String getMethodName(String methodName) {
@@ -278,6 +298,11 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
    */
   @Override
   public Description matchClass(ClassTree tree, VisitorState state) {
+    // If class was checked manually already, it can be skipped
+    if (seenClasses.contains(tree.getSimpleName().toString())) {
+      return Description.NO_MATCH;
+    }
+
     if (OBJC_NAME_MATCHER.matches(tree, state)) {
       for (AnnotationTree annTree : tree.getModifiers().getAnnotations()) {
         String source = state.getSourceForNode(annTree.getAnnotationType());
@@ -290,7 +315,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
         }
       }
     }
-
+    seenClasses.add(tree.getSimpleName().toString());
     return Description.NO_MATCH;
   }
 
