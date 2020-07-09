@@ -103,7 +103,6 @@ public class J2objcMethodNameManglePackage {
 
   }
 
-
   public static class Generics {
 
     // BUG: Diagnostic contains: XPTJ2objcMethodNameManglePackage_Generics_genericTestWithId_
@@ -119,6 +118,15 @@ public class J2objcMethodNameManglePackage {
     // BUG: Diagnostic contains: XPTJ2objcMethodNameManglePackage_Generics_genericTestWithId_withId_withId_
     public static <T, E> T genericTest(E x, T y, T z) {
       return z;
+    }
+  }
+
+  @ObjectiveCName("RenamedTest3")
+  public static class Test3 {
+
+    // BUG: Diagnostic contains: RenamedTest3_twoTestsWithRenamedTest3_withDoubleNestedClass_
+    public static void twoTests(Test3 x, Test.Test3 y) {
+      return;
     }
   }
 }

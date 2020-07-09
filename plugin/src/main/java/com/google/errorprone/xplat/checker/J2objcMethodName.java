@@ -39,7 +39,6 @@ import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Type;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,7 +69,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
   private final Map<String, String> foundObjcClassNames = new HashMap<>();
 
-  private final Set<String> seenClasses = new HashSet<>();
+  private final Set<String> visitedClasses = new HashSet<>();
 
   private final Map<String, Integer> usedMethodNames = new HashMap<>();
 
@@ -98,14 +97,19 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
         .build();
   }
 
-  private String classToCamelCase(String enclosingClass, String outermostClass, Symbol symbol) {
-    StringBuilder newName = new StringBuilder();
+  private String localClassLookupName(String enclosingClass, String outermostClass) {
+    return enclosingClass.substring(outermostClass.lastIndexOf(".") + 1);
+  }
 
-    if (foundObjcClassNames.containsKey(symbol.outermostClass().getSimpleName().toString())) {
-      newName.append(foundObjcClassNames.get(symbol.outermostClass().getSimpleName().toString()));
+  private String localClassNameMangle(String enclosingClass, String outermostClass) {
+    StringBuilder newName = new StringBuilder();
+    String outermost = outermostClass.substring(outermostClass.lastIndexOf(".") + 1);
+
+    if (foundObjcClassNames.containsKey(outermost)) {
+      newName.append(foundObjcClassNames.get(outermost));
     } else if (packageAnnotation != null) {
       newName.append(packageAnnotation);
-      newName.append(symbol.outermostClass().getSimpleName());
+      newName.append(outermost);
     } else {
       Iterable<String> packageParts = Splitter.on('.').split(outermostClass);
 
@@ -118,12 +122,15 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     if (outermostClass.length() < enclosingClass.length()) {
       Iterable<String> remainingParts = Splitter.on('.')
           .split(enclosingClass.substring(outermostClass.length() + 1));
+      StringBuilder lookupName = new StringBuilder(outermost);
 
       for (String part : remainingParts) {
         newName.append("_");
+        lookupName.append(".");
+        lookupName.append(part);
 
-        if (foundObjcClassNames.containsKey(part)) {
-          newName = new StringBuilder(foundObjcClassNames.get(part));
+        if (foundObjcClassNames.containsKey(lookupName.toString())) {
+          newName = new StringBuilder(foundObjcClassNames.get(lookupName.toString()));
         } else {
           newName.append(part.substring(0, 1).toUpperCase());
           newName.append(part.substring(1));
@@ -133,7 +140,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return newName.toString();
   }
 
-  private String typeToCamelCase(String enclosingClass, String outermostClass) {
+  private String externalTypeNameMangle(String enclosingClass, String outermostClass) {
     StringBuilder newName = new StringBuilder();
     Iterable<String> packageParts = Splitter.on('.').split(outermostClass);
 
@@ -155,8 +162,9 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return newName.toString();
   }
 
-  private List<String> paramatersToCamelCase(List<? extends VariableTree> paramList) {
-    List<String> newList = new ArrayList<>();
+  private String parameterNameMangle(String name, List<? extends VariableTree> paramList) {
+    StringBuilder output = new StringBuilder(name);
+    boolean firstIter = true;
 
     for (VariableTree var : paramList) {
       Type type = ASTHelpers.getType(var);
@@ -167,52 +175,41 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
         continue;
       }
 
+      if (firstIter) {
+        output.append("With");
+        firstIter = false;
+      } else {
+        output.append("_with");
+      }
+
       if (type.getKind() == TypeKind.TYPEVAR) {
-        newList.add("Id");
+        output.append("Id");
       } else {
         String typeStr = type.toString();
-        ClassSymbol outermost = ASTHelpers.outermostClass(ASTHelpers.getSymbol(var.getType()));
-        ClassSymbol containingClass = ASTHelpers.outermostClass(symbol);
+        ClassSymbol outermost = typeSymbol.outermostClass();
+        ClassSymbol containingClass = symbol.outermostClass();
 
-        if (outermost == null || containingClass == null) {
-          continue;
-        }
-
-        // If the type of the parameter is local to this class, uses classToCamelCase instead
+        // Use localClassLookupName if the parameter type is local to this class
         if (outermost.equals(containingClass)) {
-          String className = typeSymbol.toString()
-              .substring(typeSymbol.toString().lastIndexOf(".") + 1);
+          String lookupName = localClassLookupName(typeSymbol.toString(),
+              outermost.toString());
 
           ObjectiveCName[] objCNames = typeSymbol.enclClass()
               .getAnnotationsByType(ObjectiveCName.class);
 
           // If the class has not been visited yet, manually check if it has an ObjectiveCName
-          if (!seenClasses.contains(className) && objCNames.length != 0) {
-            foundObjcClassNames.put(className, objCNames[0].value());
-            seenClasses.add(className);
+          if (!visitedClasses.contains(lookupName) && objCNames.length != 0) {
+            foundObjcClassNames.put(lookupName, objCNames[0].value());
+            visitedClasses.add(lookupName);
           }
 
-          newList.add(classToCamelCase(typeStr, outermost.toString(), symbol));
+          output.append(localClassNameMangle(typeStr, outermost.toString()));
         } else {
-          newList.add(typeToCamelCase(typeSymbol.enclClass().toString(), outermost.toString()));
+          output.append(
+              externalTypeNameMangle(typeSymbol.enclClass().toString(), outermost.toString()));
         }
       }
     }
-    return newList;
-  }
-
-  private String nameAndArgsToCamelCase(String name, List<String> argList) {
-    StringBuilder output = new StringBuilder(name);
-
-    for (int i = 0; i < argList.size(); i++) {
-      if (i == 0) {
-        output.append("With");
-      } else {
-        output.append("_with");
-      }
-      output.append(argList.get(i));
-    }
-
     output.append("_");
     return output.toString();
   }
@@ -225,8 +222,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     if (foundObjcClassNames.containsKey(symbol.enclClass().getSimpleName().toString())) {
       output.append(foundObjcClassNames.get(symbol.enclClass().getSimpleName().toString()));
     } else {
-      output.append(classToCamelCase(symbol.enclClass().toString(),
-          symbol.outermostClass().toString(), symbol));
+      output.append(
+          localClassNameMangle(symbol.enclClass().toString(), symbol.outermostClass().toString()));
     }
 
     output.append("_");
@@ -245,8 +242,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       if (tree.getParameters().isEmpty()) {
         output.append(symbol.name);
       } else {
-        output.append(nameAndArgsToCamelCase(symbol.name.toString(),
-            paramatersToCamelCase(tree.getParameters())));
+        output.append(parameterNameMangle(symbol.name.toString(), tree.getParameters()));
       }
     }
     return output.toString();
@@ -298,8 +294,12 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
    */
   @Override
   public Description matchClass(ClassTree tree, VisitorState state) {
+    String encl = ASTHelpers.getSymbol(tree).enclClass().toString();
+    String outer = ASTHelpers.getSymbol(tree).outermostClass().toString();
+    String lookupName = localClassLookupName(encl, outer);
+
     // If class was checked manually already, it can be skipped
-    if (seenClasses.contains(tree.getSimpleName().toString())) {
+    if (visitedClasses.contains(lookupName)) {
       return Description.NO_MATCH;
     }
 
@@ -309,13 +309,13 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
         if (source != null && source.equals("ObjectiveCName")) {
           String value = annTree.getArguments().toString();
-          foundObjcClassNames.put(tree.getSimpleName().toString(),
+          foundObjcClassNames.put(lookupName,
               value.substring(value.indexOf("\"") + 1, value.lastIndexOf("\"")));
           break;
         }
       }
     }
-    seenClasses.add(tree.getSimpleName().toString());
+    visitedClasses.add(lookupName);
     return Description.NO_MATCH;
   }
 

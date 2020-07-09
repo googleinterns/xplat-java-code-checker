@@ -95,7 +95,8 @@ public class J2objcMethodNameMangle {
     }
 
     // BUG: Diagnostic contains: Middleclass_lotsOfLocalClassesBottomWithMiddleclass_Test2_withComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_withDoubleNestedClass_
-    public static Test2 lotsOfLocalClassesBottom(Test2 test2, J2objcMethodNameMangle nameMangle,
+    public static Test2 lotsOfLocalClassesBottom(Test2 test2,
+        J2objcMethodNameMangle nameMangle,
         Test3 test3) {
       return test2;
     }
@@ -117,6 +118,15 @@ public class J2objcMethodNameMangle {
     // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_Generics_genericTestWithId_withId_withId_
     public static <T, E> T genericTest(E x, T y, T z) {
       return z;
+    }
+  }
+
+  @ObjectiveCName("RenamedTest3")
+  public static class Test3 {
+
+    // BUG: Diagnostic contains: RenamedTest3_twoTestsWithRenamedTest3_withDoubleNestedClass_
+    public static void twoTests(Test3 x, Test.Test3 y) {
+      return;
     }
   }
 }
