@@ -98,17 +98,17 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
   }
 
   /**
-   * Returns the base class and subclasses as a string to be used for looking up ObjectiveCName in
-   * {@code foundObjcClassNames}.
+   * Returns the base class and nested classes as a string to be used for looking up ObjectiveCName
+   * in {@code foundObjcClassNames}.
    * <p>
    * A class called {@code Foo} would return the String {@code "Foo"}. A class called {@code Foo}
-   * with subclass {@code Bar} would return the String {@code "Foo.Bar"}.
+   * with nested class {@code Bar} would return the String {@code "Foo.Bar"}.
    *
    * @param enclosingClass Class that method is contained in. Retrieved from {@code
    *                       symbol.enclClass()}.
    * @param outermostClass Outermost class that method is contained in. Retrieved from {@code
    *                       symbol.outermostClass()}.
-   * @return String that contains base class and subclasses, split by periods.
+   * @return String that contains the base class and nested classes, split by periods.
    */
   private String localClassLookupName(String enclosingClass, String outermostClass) {
     return enclosingClass.substring(outermostClass.lastIndexOf(".") + 1);
@@ -119,8 +119,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
    * {@code externalTypeNameMangle()} for types in a different package.
    * <p>
    * A class called {@code com.google.foo} would return {@code "ComGoogleFoo"}. A class called
-   * {@code com.google.foo} with subclass {@code bar} would return {@code "ComGoogleFoo_Bar"}. If
-   * the subclass {@code bar} was annotated with {@code ObjectiveCName("Hello")}, then {@code
+   * {@code com.google.foo} with nested class {@code bar} would return {@code "ComGoogleFoo_Bar"}.
+   * If the nested class {@code bar} was annotated with {@code ObjectiveCName("Hello")}, then {@code
    * "Hello"} would be returned. If the package {@code com.google} was annotated with{@code
    * ObjectiveCName("pack")}, then {@code "packFoo_Bar"} would be returned.
    *
@@ -149,7 +149,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       }
     }
 
-    // If the class is a subclass
+    // If the class is a nested class
     if (!outermostClass.equals(enclosingClass)) {
       Iterable<String> remainingParts = Splitter.on('.')
           .split(enclosingClass.substring(outermostClass.length() + 1));
@@ -163,8 +163,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
         if (foundObjcClassNames.containsKey(lookupName.toString())) {
           newName = new StringBuilder(foundObjcClassNames.get(lookupName.toString()));
         } else {
-          newName.append(part.substring(0, 1).toUpperCase());
-          newName.append(part.substring(1));
+          newName.append(part);
         }
       }
     }
@@ -176,7 +175,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
    * Use {@code localClassNameMangle()} for types in the same package.
    * <p>
    * A class called {@code com.google.foo} would return the String {@code "ComGoogleFoo"}. A class
-   * called {@code com.google.foo} with subclass {@code bar} would return {@code ComGoogleFoo_Bar}.
+   * called {@code com.google.foo} with nested class {@code bar} would return {@code
+   * ComGoogleFoo_Bar}.
    *
    * @param enclosingClass Class that method is contained in. Retrieved from {@code
    *                       symbol.enclClass()}.
@@ -194,15 +194,14 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       newName.append(part.substring(1));
     }
 
-    // If the class is a subclass
+    // If the class is a nested class
     if (!outermostClass.equals(enclosingClass)) {
       Iterable<String> remainingParts = Splitter.on('.')
           .split(enclosingClass.substring(outermostClass.length() + 1));
 
       for (String part : remainingParts) {
         newName.append("_");
-        newName.append(part.substring(0, 1).toUpperCase());
-        newName.append(part.substring(1));
+        newName.append(part);
       }
     }
     return newName.toString();

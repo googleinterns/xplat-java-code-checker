@@ -139,4 +139,12 @@ public class J2objcMethodNameManglePackage {
 
     }
   }
+
+  public static class subClass extends Test {
+
+    // BUG: Diagnostic contains: XPTJ2objcMethodNameManglePackage_subClass_subClassTestWithMiddleclass_
+    public static void subClassTest(J2objcMethodNameNegativeCases.Test x) {
+
+    }
+  }
 }

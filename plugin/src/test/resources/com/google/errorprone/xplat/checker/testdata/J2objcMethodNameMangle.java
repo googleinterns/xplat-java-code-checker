@@ -139,4 +139,12 @@ public class J2objcMethodNameMangle {
 
     }
   }
+
+  public static class subClass extends Test {
+
+    // BUG: Diagnostic contains: ComGoogleErrorproneXplatCheckerTestdataJ2objcMethodNameMangle_subClass_subClassTestWithMiddleclass_
+    public static void subClassTest(J2objcMethodNameNegativeCases.Test x) {
+
+    }
+  }
 }
