@@ -97,10 +97,40 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
         .build();
   }
 
+  /**
+   * Returns the base class and subclasses as a string to be used for looking up ObjectiveCName in
+   * {@code foundObjcClassNames}.
+   * <p>
+   * A class called {@code Foo} would return the String {@code "Foo"}. A class called {@code Foo}
+   * with subclass {@code Bar} would return the String {@code "Foo.Bar"}.
+   *
+   * @param enclosingClass Class that method is contained in. Retrieved from {@code
+   *                       symbol.enclClass()}.
+   * @param outermostClass Outermost class that method is contained in. Retrieved from {@code
+   *                       symbol.outermostClass()}.
+   * @return String that contains base class and subclasses, split by periods.
+   */
   private String localClassLookupName(String enclosingClass, String outermostClass) {
     return enclosingClass.substring(outermostClass.lastIndexOf(".") + 1);
   }
 
+  /**
+   * Mangles the name of a class defined inside the same package as the method being matched on. Use
+   * {@code externalTypeNameMangle()} for types in a different package.
+   * <p>
+   * A class called {@code com.google.foo} would return {@code "ComGoogleFoo"}. A class called
+   * {@code com.google.foo} with subclass {@code bar} would return {@code "ComGoogleFoo_Bar"}. If
+   * the subclass {@code bar} was annotated with {@code ObjectiveCName("Hello")}, then {@code
+   * "Hello"} would be returned. If the package {@code com.google} was annotated with{@code
+   * ObjectiveCName("pack")}, then {@code "packFoo_Bar"} would be returned.
+   *
+   * @param enclosingClass Class that method is contained in. Retrieved from {@code
+   *                       symbol.enclClass()}.
+   * @param outermostClass Outermost class that method is contained in. Retrieved from {@code
+   *                       symbol.outermostClass()}.
+   * @return A mangled name (String) that emulates the output that J2ObjC would have if used on the
+   * type.
+   */
   private String localClassNameMangle(String enclosingClass, String outermostClass) {
     StringBuilder newName = new StringBuilder();
     String outermost = outermostClass.substring(outermostClass.lastIndexOf(".") + 1);
@@ -119,7 +149,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       }
     }
 
-    if (outermostClass.length() < enclosingClass.length()) {
+    // If the class is a subclass
+    if (!outermostClass.equals(enclosingClass)) {
       Iterable<String> remainingParts = Splitter.on('.')
           .split(enclosingClass.substring(outermostClass.length() + 1));
       StringBuilder lookupName = new StringBuilder(outermost);
@@ -140,6 +171,20 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return newName.toString();
   }
 
+  /**
+   * Mangles the name of a class defined in a different package than the method being matched on.
+   * Use {@code localClassNameMangle()} for types in the same package.
+   * <p>
+   * A class called {@code com.google.foo} would return the String {@code "ComGoogleFoo"}. A class
+   * called {@code com.google.foo} with subclass {@code bar} would return {@code ComGoogleFoo_Bar}.
+   *
+   * @param enclosingClass Class that method is contained in. Retrieved from {@code
+   *                       symbol.enclClass()}.
+   * @param outermostClass Outermost class that method is contained in. Retrieved from {@code
+   *                       symbol.outermostClass()}.
+   * @return A mangled name (String) that emulates the output that J2ObjC would have if used on the
+   * type.
+   */
   private String externalTypeNameMangle(String enclosingClass, String outermostClass) {
     StringBuilder newName = new StringBuilder();
     Iterable<String> packageParts = Splitter.on('.').split(outermostClass);
@@ -149,7 +194,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
       newName.append(part.substring(1));
     }
 
-    if (outermostClass.length() < enclosingClass.length()) {
+    // If the class is a subclass
+    if (!outermostClass.equals(enclosingClass)) {
       Iterable<String> remainingParts = Splitter.on('.')
           .split(enclosingClass.substring(outermostClass.length() + 1));
 
@@ -162,6 +208,19 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return newName.toString();
   }
 
+  /**
+   * Given the method name and a list of method parameters, emulates the name mangling done by
+   * J2ObjC on the parameters and method name.
+   * <p>
+   * A method called {@code foo} with 1 parameter of type {@code java.util.HashMap} would return
+   * {@code "fooWithJavaUtilHashMap_"}. A method called {@code fooGeneric} with 1 generic parameter
+   * would return {@code "fooGenericWithId_"}.
+   *
+   * @param name      Name of the method being mangled.
+   * @param paramList List of method parameters.
+   * @return A mangled name (String) that emulates the output that J2ObjC would have for the
+   * parameters and method name.
+   */
   private String parameterNameMangle(String name, List<? extends VariableTree> paramList) {
     StringBuilder output = new StringBuilder(name);
     boolean firstIter = true;
@@ -189,8 +248,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
         ClassSymbol outermost = typeSymbol.outermostClass();
         ClassSymbol containingClass = symbol.outermostClass();
 
-        // Use localClassLookupName if the parameter type is local to this class
-        if (outermost.equals(containingClass)) {
+        // Use localClassLookupName if the parameter type is local to this package
+        if (outermost.packge().equals(containingClass.packge())) {
           String lookupName = localClassLookupName(typeSymbol.toString(),
               outermost.toString());
 
@@ -214,6 +273,20 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return output.toString();
   }
 
+  /**
+   * Given a MethodTree and VisitorState, returns the fully mangled name that would be outputted by
+   * J2ObjC if it were used on this MethodTree.
+   * <p>
+   * A method called {@code bar} in a class called {@code com.google.foo} with 1 parameter of type
+   * {@code java.util.HashMap} would return {@code "ComGoogleFoo_barWithJavaUtilHashMap_"}. A method
+   * called {@code barGeneric} with 1 generic parameter would return {@code
+   * "ComGoogleFoo_barGenericWithId_"}. If the package {@code com.google} was annotated with{@code
+   * ObjectiveCName("pack")}, then {@code "packFoo_barGenericWithId_"} would be returned.
+   *
+   * @param tree  Method to be name mangled.
+   * @param state VisitorState that contains the method to be name mangled.
+   * @return A mangled name (String) that emulates J2objC output.
+   */
   private String methodNameMangle(MethodTree tree, VisitorState state) {
     StringBuilder output = new StringBuilder();
 
@@ -248,6 +321,13 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     return output.toString();
   }
 
+  /**
+   * Given a java method name, returns a name to be used inside a suggested {@link ObjectiveCName}
+   * annotation that does not conflict with other suggested method names.
+   *
+   * @param methodName Name of the java method.
+   * @return Name to be used inside suggested {@link ObjectiveCName} annotation.
+   */
   private String getMethodName(String methodName) {
     if (usedMethodNames.containsKey(methodName)) {
       usedMethodNames.put(methodName, usedMethodNames.get(methodName) + 1);
@@ -290,7 +370,8 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
   /**
    * Looks for an ObjectiveCName annotation on a class. If one is found, stores the class name as
-   * the key and the annotation value as the value in the map foundObjcClassNames.
+   * the key and the annotation value as the value in the map foundObjcClassNames. This method will
+   * never match, and is only used to populate foundObjcClassNames.
    */
   @Override
   public Description matchClass(ClassTree tree, VisitorState state) {
@@ -321,6 +402,7 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
 
   /**
    * Looks for an ObjectiveCName annotation on a package. If one is found, stores the value in
+   * packageAnnotation. This method will never match, and is only used to populate
    * packageAnnotation.
    */
   @Override

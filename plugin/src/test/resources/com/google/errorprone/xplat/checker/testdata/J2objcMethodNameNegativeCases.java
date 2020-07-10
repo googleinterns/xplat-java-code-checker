@@ -50,7 +50,7 @@ public class J2objcMethodNameNegativeCases {
 
   // short names and class renamed
   @ObjectiveCName("Middleclass")
-  private static class Test {
+  public static class Test {
 
     // protected - unaffected
     protected static void hello1(Calendar.Builder x) {

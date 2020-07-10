@@ -18,6 +18,7 @@ import com.google.j2objc.annotations.ObjectiveCName;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Set;
+import com.google.errorprone.xplat.checker.testdata.J2objcMethodNameNegativeCases;
 
 public class J2objcMethodNameManglePackage {
 
@@ -127,6 +128,15 @@ public class J2objcMethodNameManglePackage {
     // BUG: Diagnostic contains: RenamedTest3_twoTestsWithRenamedTest3_withDoubleNestedClass_
     public static void twoTests(Test3 x, Test.Test3 y) {
       return;
+    }
+  }
+
+  public static class OutsideClass {
+
+    // BUG: Diagnostic contains: XPTJ2objcMethodNameManglePackage_OutsideClass_outsideClassTestWithMiddleclass_withXPTJ2objcMethodNameNegativeCases_
+    public static void outsideClassTest(J2objcMethodNameNegativeCases.Test x,
+        J2objcMethodNameNegativeCases y) {
+
     }
   }
 }
