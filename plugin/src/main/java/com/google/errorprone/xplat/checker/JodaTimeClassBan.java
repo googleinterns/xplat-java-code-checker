@@ -32,6 +32,7 @@ import com.google.errorprone.matchers.Description;
 import com.google.errorprone.util.ASTHelpers;
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodInvocationTree;
@@ -43,11 +44,7 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Type;
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonElement;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import com.google.common.io.Resources;
 import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.util.Map;
@@ -70,71 +67,70 @@ public class JodaTimeClassBan extends BugChecker
     implements MethodInvocationTreeMatcher, NewClassTreeMatcher, ImportTreeMatcher,
     VariableTreeMatcher, MethodTreeMatcher {
 
-  private static final ImmutableSet<String> PACKAGE_NAMES =
-      ImmutableSet.of(
-          "org.joda.time.chrono", "org.joda.time.convert", "org.joda.time.field",
-          "org.joda.time.format", "org.joda.time.tz"
-      );
+  private final ImmutableMap<String, String> PACKAGE_NAMES;
 
-  private static ImmutableMap<String, String> PACKAGE_NAMES() {
-    Map map;
+  private final ImmutableMap<String, String> CLASS_NAMES;
+
+  private final ImmutableMap<String, String> METHOD_NAMES;
+
+
+  private static ImmutableMap<String, String> getJsonData(String fileName) {
+    java.lang.reflect.Type mapType = new TypeToken<Map<String, String>>() {
+    }.getType();
+
+    Map<String, String> map;
+    JsonElement root = null;
     try {
-      JsonElement root = JsonParser
-          .parseString(Resources.toString(Resources.getResource("Xplatbans.json"), Charsets.UTF_8));
-      map = new Gson().fromJson(root, Map.class);
-      System.out.println(map);
-    } catch (IllegalArgumentException | IOException e) {
-      e.printStackTrace();
-      return null;
+      root = JsonParser
+          .parseString(Resources.toString(Resources.getResource(fileName), Charsets.UTF_8));
+    } catch (IOException e) {
+      System.err.println("Resource missing - Xplatpackagebans.json}");
+      System.exit(1);
     }
-    System.out.println(map.get("packages"));
+    map = new Gson().fromJson(root, mapType);
     return ImmutableMap.copyOf(map);
   }
 
-  public JodaTimeClassBan(ErrorProneFlags flags) {
-    PACKAGE_NAMES();
+  public JodaTimeClassBan() {
+    PACKAGE_NAMES = getJsonData("Xplatpackagebans.json");
+    CLASS_NAMES = getJsonData("Xplatclassbans.json");
+    METHOD_NAMES = getJsonData("Xplatmethodbans.json");
   }
 
-  private static final ImmutableSet<String> CLASS_NAMES =
-      ImmutableSet.of(
-          "org.joda.time.Chronology", "org.joda.time.DateMidnight",
-          "org.joda.time.DateTimeComparator", "org.joda.time.DateTimeField",
-          "org.joda.time.DateTimeFieldType", "org.joda.time.DateTimeUtils",
-          "org.joda.time.Days", "org.joda.time.DurationField", "org.joda.time.DurationFieldType",
-          "org.joda.time.Hours", "org.joda.time.IllegalFieldValueException",
-          "org.joda.time.IllegalInstantException", "org.joda.time.JodaTimePermission",
-          "org.joda.time.Minutes", "org.joda.time.MonthDay", "org.joda.time.Months",
-          "org.joda.time.MutableDateTime", "org.joda.time.MutableInterval",
-          "org.joda.time.MutablePeriod", "org.joda.time.Partial", "org.joda.time.Years",
-          "org.joda.time.PeriodType", "org.joda.time.ReadWritableDateTime",
-          "org.joda.time.ReadWritableInstant", "org.joda.time.ReadWritableInterval",
-          "org.joda.time.ReadWritablePeriod", "org.joda.time.Seconds",
-          "org.joda.time.TimeOfDay", "org.joda.time.Weeks", "org.joda.time.YearMonthDay"
-      );
+  public Description standardMessage(Tree tree, String target, String reason) {
+    if (reason.length() == 0) {
+      reason = "cross platform incompatibility.";
+    }
 
-  public Description standardMessage(Tree tree, String target) {
     return buildDescription(tree)
         .setMessage(
-            String.format("Use of %s has been banned due to cross"
-                + " platform incompatibility.", target))
+            String.format("Use of %s has been banned due to %s", target, reason))
         .build();
   }
 
-  public Description methodCallMessage(Tree tree, String method, String target) {
+  public Description methodCallMessage(Tree tree, String method, String target, String reason) {
+    if (reason.length() == 0) {
+      reason = "cross platform incompatibility.";
+    }
+
     return buildDescription(tree)
         .setMessage(
-            String.format("Use of %s is not allowed, as %s has been banned due to cross"
-                + " platform incompatibility.", method, target))
+            String.format("Use of %s is not allowed, as %s has been banned due to %s", method,
+                target, reason))
         .build();
   }
 
-  public Description constructorMessage(Tree tree, String constructor, String target) {
+  public Description constructorMessage(Tree tree, String constructor, String target,
+      String reason) {
+    if (reason.length() == 0) {
+      reason = "cross platform incompatibility.";
+    }
+
     return buildDescription(tree)
         .setMessage(
             String.format(
                 "Use of this constructor (%s) is not allowed, as %s"
-                    + " is banned due to cross platform incompatibility.",
-                constructor, target))
+                    + " is banned due to %s", constructor, target, reason))
         .build();
   }
 
@@ -148,20 +144,24 @@ public class JodaTimeClassBan extends BugChecker
     if (methodType != null && methodSymbol != null) {
 
       // checks receiver for banned classes/packages
-      if (CLASS_NAMES.contains(methodRecvType.toString())) {
-        return standardMessage(tree, methodRecvType.toString());
-      } else if (PACKAGE_NAMES.contains(methodSymbol.packge().toString())) {
-        return standardMessage(tree, methodSymbol.packge().toString());
+      if (CLASS_NAMES.containsKey(methodRecvType.toString())) {
+        return standardMessage(tree, methodRecvType.toString(),
+            CLASS_NAMES.get(methodRecvType.toString()));
+      } else if (PACKAGE_NAMES.containsKey(methodSymbol.packge().toString())) {
+        return standardMessage(tree, methodSymbol.packge().toString(),
+            PACKAGE_NAMES.get(methodSymbol.packge().toString()));
       }
 
       // checks caller for banned classes
-      if (CLASS_NAMES.contains(methodType.toString())) {
-        return methodCallMessage(tree, methodSymbol.toString(), methodType.toString());
+      if (CLASS_NAMES.containsKey(methodType.toString())) {
+        return methodCallMessage(tree, methodSymbol.toString(), methodType.toString(),
+            CLASS_NAMES.get(methodType.toString()));
       }
       // checks caller for banned packages
-      for (String pack_name : PACKAGE_NAMES) {
+      for (String pack_name : PACKAGE_NAMES.keySet()) {
         if (methodType.toString().startsWith(pack_name)) {
-          return methodCallMessage(tree, methodSymbol.toString(), pack_name);
+          return methodCallMessage(tree, methodSymbol.toString(), pack_name,
+              PACKAGE_NAMES.get(pack_name));
         }
       }
     }
@@ -172,10 +172,12 @@ public class JodaTimeClassBan extends BugChecker
       Type argType = ASTHelpers.getType(arg);
 
       if (argSymbol != null && argType != null && methodSymbol != null) {
-        if (CLASS_NAMES.contains(argType.toString())) {
-          return standardMessage(tree, methodSymbol.toString());
-        } else if (PACKAGE_NAMES.contains(argSymbol.packge().toString())) {
-          return standardMessage(tree, methodSymbol.toString());
+        if (CLASS_NAMES.containsKey(argType.toString())) {
+          return standardMessage(tree, methodSymbol.toString(),
+              CLASS_NAMES.get(argType.toString()));
+        } else if (PACKAGE_NAMES.containsKey(argSymbol.packge().toString())) {
+          return standardMessage(tree, methodSymbol.toString(),
+              PACKAGE_NAMES.get(argSymbol.packge().toString()));
         }
       }
     }
@@ -191,19 +193,22 @@ public class JodaTimeClassBan extends BugChecker
 
     if (constructorSymbol != null && constructorType != null) {
       // checks constructor for banned classes/packages
-      if (CLASS_NAMES.contains(constructorType.toString())) {
-        return standardMessage(tree, constructorType.toString());
-      } else if (PACKAGE_NAMES.contains(constructorSymbol.packge().toString())) {
-        return standardMessage(tree, constructorSymbol.packge().toString());
+      if (CLASS_NAMES.containsKey(constructorType.toString())) {
+        return standardMessage(tree, constructorType.toString(),
+            CLASS_NAMES.get(constructorType.toString()));
+      } else if (PACKAGE_NAMES.containsKey(constructorSymbol.packge().toString())) {
+        return standardMessage(tree, constructorSymbol.packge().toString(),
+            PACKAGE_NAMES.get(constructorSymbol.packge().toString()));
       }
 
       // checks parameters for banned classes/packages
       for (VarSymbol param : constructorSymbol.getParameters()) {
-        if (CLASS_NAMES.contains(param.type.toString())) {
-          return constructorMessage(tree, constructorSymbol.toString(), param.type.toString());
-        } else if (PACKAGE_NAMES.contains(param.packge().toString())) {
+        if (CLASS_NAMES.containsKey(param.type.toString())) {
+          return constructorMessage(tree, constructorSymbol.toString(), param.type.toString(),
+              CLASS_NAMES.get(param.type.toString()));
+        } else if (PACKAGE_NAMES.containsKey(param.packge().toString())) {
           return constructorMessage(tree, constructorSymbol.toString(),
-              param.packge().toString());
+              param.packge().toString(), PACKAGE_NAMES.get(param.packge().toString()));
         }
       }
     }
@@ -214,9 +219,12 @@ public class JodaTimeClassBan extends BugChecker
   public Description matchImport(ImportTree tree, VisitorState state) {
     Symbol importSymbol = ASTHelpers.getSymbol(tree.getQualifiedIdentifier());
 
-    if (CLASS_NAMES.contains(importSymbol.toString()) ||
-        PACKAGE_NAMES.contains(importSymbol.packge().toString())) {
-      return standardMessage(tree, importSymbol.toString());
+    if (CLASS_NAMES.containsKey(importSymbol.toString())) {
+      return standardMessage(tree, importSymbol.toString(),
+          CLASS_NAMES.get(importSymbol.toString()));
+    } else if (PACKAGE_NAMES.containsKey(importSymbol.packge().toString())) {
+      return standardMessage(tree, importSymbol.toString(),
+          PACKAGE_NAMES.get(importSymbol.packge().toString()));
     }
 
     return Description.NO_MATCH;
@@ -227,13 +235,13 @@ public class JodaTimeClassBan extends BugChecker
     Type varType = ASTHelpers.getType(tree);
 
     if (varType != null) {
-      if (CLASS_NAMES.contains(varType.toString())) {
-        return standardMessage(tree, varType.toString());
+      if (CLASS_NAMES.containsKey(varType.toString())) {
+        return standardMessage(tree, varType.toString(), CLASS_NAMES.get(varType.toString()));
       }
 
-      for (String packName : PACKAGE_NAMES) {
+      for (String packName : PACKAGE_NAMES.keySet()) {
         if (varType.toString().startsWith(packName)) {
-          return standardMessage(tree, packName);
+          return standardMessage(tree, packName, PACKAGE_NAMES.get(packName));
         }
       }
     }
@@ -247,13 +255,13 @@ public class JodaTimeClassBan extends BugChecker
 
     if (methodType != null) {
       methodType = methodType.getReturnType();
-      if (CLASS_NAMES.contains(methodType.toString())) {
-        return standardMessage(tree, methodType.toString());
+      if (CLASS_NAMES.containsKey(methodType.toString())) {
+        return standardMessage(tree, methodType.toString(), CLASS_NAMES.get(methodType.toString()));
       }
 
-      for (String packName : PACKAGE_NAMES) {
+      for (String packName : PACKAGE_NAMES.keySet()) {
         if (methodType.toString().startsWith(packName)) {
-          return standardMessage(tree, packName);
+          return standardMessage(tree, packName, PACKAGE_NAMES.get(packName));
         }
       }
     }

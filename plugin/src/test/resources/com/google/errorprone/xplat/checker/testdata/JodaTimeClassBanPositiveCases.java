@@ -29,7 +29,7 @@ import org.joda.time.Chronology;
 // BUG: Diagnostic contains: Use of org.joda.time.DateMidnight
 import org.joda.time.DateMidnight;
 //tests banned package import
-// BUG: Diagnostic contains: Use of org.joda.time.tz.FixedDateTimeZone
+// BUG: Diagnostic contains:Use of org.joda.time.tz.FixedDateTimeZone
 import org.joda.time.tz.FixedDateTimeZone;
 
 
