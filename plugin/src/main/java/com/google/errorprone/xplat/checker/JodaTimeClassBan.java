@@ -16,8 +16,11 @@ package com.google.errorprone.xplat.checker;
 
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Resources;
 import com.google.errorprone.BugPattern;
+import com.google.errorprone.ErrorProneFlags;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.ImportTreeMatcher;
@@ -27,6 +30,8 @@ import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.VariableTreeMatcher;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.util.ASTHelpers;
+import com.google.gson.Gson;
+import com.google.gson.JsonParser;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodInvocationTree;
@@ -38,6 +43,15 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Type;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import com.google.common.io.Resources;
+import com.google.common.base.Charsets;
+import java.io.IOException;
+import java.util.Map;
+
 
 /**
  * Check for usage of some Joda-Time's classes, which can be found in {@code CLASS_NAMES}. Also
@@ -61,6 +75,25 @@ public class JodaTimeClassBan extends BugChecker
           "org.joda.time.chrono", "org.joda.time.convert", "org.joda.time.field",
           "org.joda.time.format", "org.joda.time.tz"
       );
+
+  private static ImmutableMap<String, String> PACKAGE_NAMES() {
+    Map map;
+    try {
+      JsonElement root = JsonParser
+          .parseString(Resources.toString(Resources.getResource("Xplatbans.json"), Charsets.UTF_8));
+      map = new Gson().fromJson(root, Map.class);
+      System.out.println(map);
+    } catch (IllegalArgumentException | IOException e) {
+      e.printStackTrace();
+      return null;
+    }
+    System.out.println(map.get("packages"));
+    return ImmutableMap.copyOf(map);
+  }
+
+  public JodaTimeClassBan(ErrorProneFlags flags) {
+    PACKAGE_NAMES();
+  }
 
   private static final ImmutableSet<String> CLASS_NAMES =
       ImmutableSet.of(
