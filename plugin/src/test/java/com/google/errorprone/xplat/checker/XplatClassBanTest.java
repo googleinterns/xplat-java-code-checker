@@ -14,7 +14,6 @@
 
 package com.google.errorprone.xplat.checker;
 
-import com.google.common.base.Predicates;
 import com.google.errorprone.CompilationTestHelper;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,26 +21,26 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Unit tests for {@link JodaTimeClassBan}.
+ * Unit tests for {@link XplatClassBan}.
  */
 @RunWith(JUnit4.class)
-public class JodaTimeClassBanTest {
+public class XplatClassBanTest {
 
   private CompilationTestHelper compilationHelper;
 
   @Before
   public void setup() {
-    compilationHelper = CompilationTestHelper.newInstance(JodaTimeClassBan.class, getClass());
+    compilationHelper = CompilationTestHelper.newInstance(XplatClassBan.class, getClass());
   }
 
   @Test
   public void positiveCases() {
-    compilationHelper.addSourceFile("JodaTimeClassBanPositiveCases.java").doTest();
+    compilationHelper.addSourceFile("XplatClassBanPositiveCases.java").doTest();
   }
 
   @Test
   public void negativeCases() {
-    compilationHelper.addSourceFile("JodaTimeClassBanNegativeCases.java").doTest();
+    compilationHelper.addSourceFile("XplatClassBanNegativeCases.java").doTest();
   }
 
 }

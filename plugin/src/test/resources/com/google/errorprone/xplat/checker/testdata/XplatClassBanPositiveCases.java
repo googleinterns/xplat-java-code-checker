@@ -33,7 +33,7 @@ import org.joda.time.DateMidnight;
 import org.joda.time.tz.FixedDateTimeZone;
 
 
-public class JodaTimeClassBanPositiveCases {
+public class XplatClassBanPositiveCases {
 
   public void mutableDate() {
     // test constructor from banned class
@@ -173,7 +173,7 @@ public class JodaTimeClassBanPositiveCases {
 
 
   public static void main(String[] args) {
-    JodaTimeClassBanPositiveCases m = new JodaTimeClassBanPositiveCases();
+    XplatClassBanPositiveCases m = new XplatClassBanPositiveCases();
 
     // tests a banned class
     // BUG: Diagnostic contains: Use of org.joda.time.DateMidnight

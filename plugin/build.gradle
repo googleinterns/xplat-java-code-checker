@@ -4,6 +4,8 @@ dependencies {
     testImplementation("com.google.errorprone:error_prone_test_helpers:latest.release")
     testImplementation("joda-time:joda-time:2.10.6")
 
+    implementation group: 'org.json', name: 'json', version: '20090211'
+
     compileOnly 'com.google.auto.service:auto-service:1.0-rc4'
     annotationProcessor 'com.google.auto.service:auto-service:1.0-rc4'
 }

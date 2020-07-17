@@ -20,7 +20,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
 
 
-public class JodaTimeClassBanNegativeCases {
+public class XplatClassBanNegativeCases {
 
   public class aClass {
 
