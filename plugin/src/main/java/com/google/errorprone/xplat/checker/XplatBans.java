@@ -53,20 +53,20 @@ import org.json.JSONObject;
 
 
 /**
- * Check for usage of some Joda-Time's classes and packages, which can be found in
+ * Check for usage of some Joda-Time classes and packages, which can be found in
  * resources/Xplatbans.json. These calls are banned due to their incompatibility with cross platform
  * development. Additional classes can be banned using the command line argument {@code
  * -XepOpt:XplatClassBan:JSON=X}, where X is the path to a JSON file containing custom bans.
  */
 @BugPattern(
-    name = "XplatClassBan",
+    name = "XplatBans",
     summary = "Bans the usage of certain Joda-Time classes and packages for cross platform use.",
     explanation =
         "The usage of several Joda-Time classes and packages are banned from cross"
             + " platform development due to incompatibilities. They are unsupported on the web"
             + " and should also not be used on supported platforms.",
     severity = ERROR)
-public class XplatClassBan extends BugChecker
+public class XplatBans extends BugChecker
     implements MethodInvocationTreeMatcher, NewClassTreeMatcher, ImportTreeMatcher,
     VariableTreeMatcher, MethodTreeMatcher {
 
@@ -120,7 +120,7 @@ public class XplatClassBan extends BugChecker
         String curClass = cont.next().toString();
         Map<String, String> localMap = new HashMap<>();
 
-        JSONObject methods = obj.getJSONObject(curClass);
+        JSONObject methods = containingClasses.getJSONObject(curClass);
 
         for (Iterator it = methods.keys(); it.hasNext(); ) {
           String key = it.next().toString();
@@ -137,7 +137,7 @@ public class XplatClassBan extends BugChecker
 
   }
 
-  public XplatClassBan(ErrorProneFlags flags) {
+  public XplatBans(ErrorProneFlags flags) {
     try {
       getJsonData(Resources.toString(Resources.getResource("Xplatbans.json"), Charsets.UTF_8),
           "Xplatbans.json");
@@ -151,7 +151,7 @@ public class XplatClassBan extends BugChecker
       throw new IllegalArgumentException(e);
     }
 
-    Optional<String> arg = flags.get("XplatClassBan:JSON");
+    Optional<String> arg = flags.get("XplatBans:JSON");
 
     if (arg.isPresent()) {
       try {
@@ -200,40 +200,53 @@ public class XplatClassBan extends BugChecker
         .build();
   }
 
+  private String typeToString(Type type) {
+    if (type == null) {
+      return "nullType";
+    }
+    String typeString = type.toString();
+
+    if (typeString.contains("<")) {
+      return typeString.substring(0, typeString.indexOf("<"));
+    }
+    return typeString;
+  }
+
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
 
     Symbol methodSymbol = ASTHelpers.getSymbol(tree);
-    Type methodRecvType = ASTHelpers.getReceiverType(tree);
-    Type methodType = ASTHelpers.getType(tree);
+    String methodRecvType = typeToString(ASTHelpers.getReceiverType(tree));
+    String methodType = typeToString(ASTHelpers.getType(tree));
 
-    if (methodType != null && methodSymbol != null) {
+    if (methodSymbol != null) {
 
       // checks receiver for banned classes/packages
-      if (classNames.containsKey(methodRecvType.toString())) {
-        return standardMessage(tree, methodRecvType.toString(),
-            classNames.get(methodRecvType.toString()));
+      if (classNames.containsKey(methodRecvType)) {
+        return standardMessage(tree, methodRecvType,
+            classNames.get(methodRecvType));
       } else if (packageNames.containsKey(methodSymbol.packge().toString())) {
         return standardMessage(tree, methodSymbol.packge().toString(),
             packageNames.get(methodSymbol.packge().toString()));
       }
 
-      // checks caller for banned classes
-      if (classNames.containsKey(methodType.toString())) {
-        return methodCallMessage(tree, methodSymbol.toString(), methodType.toString(),
-            classNames.get(methodType.toString()));
+      // checks if method was banned directly
+      if (methodNames.containsKey(methodRecvType) && methodNames.get(methodRecvType)
+          .containsKey(methodSymbol.getSimpleName().toString())) {
+        return methodCallMessage(tree, methodSymbol.getSimpleName().toString() + "()",
+            methodRecvType,
+            methodNames.get(methodRecvType).get(methodSymbol.getSimpleName().toString()));
       }
 
-      // checks if method was banned directly
-      if (methodNames.containsKey(methodType.toString()) && methodNames.get(methodType.toString())
-          .containsKey(methodSymbol.toString())) {
-        return methodCallMessage(tree, methodSymbol.toString(), methodType.toString(),
-            methodNames.get(methodType.toString()).get(methodSymbol.toString()));
+      // checks caller for banned classes
+      if (classNames.containsKey(methodType)) {
+        return methodCallMessage(tree, methodSymbol.toString(), methodType,
+            classNames.get(methodType));
       }
 
       // checks caller for banned packages
       for (String pack_name : packageNames.keySet()) {
-        if (methodType.toString().startsWith(pack_name)) {
+        if (methodType.startsWith(pack_name)) {
           return methodCallMessage(tree, methodSymbol.toString(), pack_name,
               packageNames.get(pack_name));
         }
@@ -243,12 +256,12 @@ public class XplatClassBan extends BugChecker
     // checks arguments for banned classes/packages
     for (ExpressionTree arg : tree.getArguments()) {
       Symbol argSymbol = ASTHelpers.getSymbol(arg);
-      Type argType = ASTHelpers.getType(arg);
+      String argType = typeToString(ASTHelpers.getType(arg));
 
-      if (argSymbol != null && argType != null && methodSymbol != null) {
-        if (classNames.containsKey(argType.toString())) {
+      if (argSymbol != null && methodSymbol != null) {
+        if (classNames.containsKey(argType)) {
           return standardMessage(tree, methodSymbol.toString(),
-              classNames.get(argType.toString()));
+              classNames.get(argType));
         } else if (packageNames.containsKey(argSymbol.packge().toString())) {
           return standardMessage(tree, methodSymbol.toString(),
               packageNames.get(argSymbol.packge().toString()));
@@ -263,13 +276,13 @@ public class XplatClassBan extends BugChecker
   public Description matchNewClass(NewClassTree tree, VisitorState state) {
 
     MethodSymbol constructorSymbol = ASTHelpers.getSymbol(tree);
-    Type constructorType = ASTHelpers.getType(tree);
+    String constructorType = typeToString(ASTHelpers.getType(tree));
 
-    if (constructorSymbol != null && constructorType != null) {
+    if (constructorSymbol != null) {
       // checks constructor for banned classes/packages
-      if (classNames.containsKey(constructorType.toString())) {
-        return standardMessage(tree, constructorType.toString(),
-            classNames.get(constructorType.toString()));
+      if (classNames.containsKey(constructorType)) {
+        return standardMessage(tree, constructorType,
+            classNames.get(constructorType));
       } else if (packageNames.containsKey(constructorSymbol.packge().toString())) {
         return standardMessage(tree, constructorSymbol.packge().toString(),
             packageNames.get(constructorSymbol.packge().toString()));
@@ -277,9 +290,11 @@ public class XplatClassBan extends BugChecker
 
       // checks parameters for banned classes/packages
       for (VarSymbol param : constructorSymbol.getParameters()) {
-        if (classNames.containsKey(param.type.toString())) {
-          return constructorMessage(tree, constructorSymbol.toString(), param.type.toString(),
-              classNames.get(param.type.toString()));
+        String paramType = typeToString(param.type);
+
+        if (classNames.containsKey(paramType)) {
+          return constructorMessage(tree, constructorSymbol.toString(), paramType,
+              classNames.get(paramType));
         } else if (packageNames.containsKey(param.packge().toString())) {
           return constructorMessage(tree, constructorSymbol.toString(),
               param.packge().toString(), packageNames.get(param.packge().toString()));
@@ -297,7 +312,7 @@ public class XplatClassBan extends BugChecker
       return standardMessage(tree, importSymbol.toString(),
           classNames.get(importSymbol.toString()));
     } else if (packageNames.containsKey(importSymbol.packge().toString())) {
-      return standardMessage(tree, importSymbol.toString(),
+      return standardMessage(tree, importSymbol.packge().toString(),
           packageNames.get(importSymbol.packge().toString()));
     }
 
@@ -306,17 +321,15 @@ public class XplatClassBan extends BugChecker
 
   @Override
   public Description matchVariable(VariableTree tree, VisitorState state) {
-    Type varType = ASTHelpers.getType(tree);
+    String varType = typeToString(ASTHelpers.getType(tree));
 
-    if (varType != null) {
-      if (classNames.containsKey(varType.toString())) {
-        return standardMessage(tree, varType.toString(), classNames.get(varType.toString()));
-      }
+    if (classNames.containsKey(varType)) {
+      return standardMessage(tree, varType, classNames.get(varType));
+    }
 
-      for (String packName : packageNames.keySet()) {
-        if (varType.toString().startsWith(packName)) {
-          return standardMessage(tree, packName, packageNames.get(packName));
-        }
+    for (String packName : packageNames.keySet()) {
+      if (varType.startsWith(packName)) {
+        return standardMessage(tree, packName, packageNames.get(packName));
       }
     }
 
@@ -325,16 +338,16 @@ public class XplatClassBan extends BugChecker
 
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
-    Type methodType = ASTHelpers.getType(tree);
+    Type type = ASTHelpers.getType(tree);
 
-    if (methodType != null) {
-      methodType = methodType.getReturnType();
-      if (classNames.containsKey(methodType.toString())) {
-        return standardMessage(tree, methodType.toString(), classNames.get(methodType.toString()));
+    if (type != null) {
+      String methodType = typeToString(type.getReturnType());
+      if (classNames.containsKey(methodType)) {
+        return standardMessage(tree, methodType, classNames.get(methodType));
       }
 
       for (String packName : packageNames.keySet()) {
-        if (methodType.toString().startsWith(packName)) {
+        if (methodType.startsWith(packName)) {
           return standardMessage(tree, packName, packageNames.get(packName));
         }
       }

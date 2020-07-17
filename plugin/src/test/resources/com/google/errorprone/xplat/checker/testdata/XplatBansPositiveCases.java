@@ -22,18 +22,18 @@ import org.joda.time.LocalDateTime;
 import org.joda.time.Days;
 // BUG: Diagnostic contains: Use of org.joda.time.MutableDateTime
 import org.joda.time.MutableDateTime;
-// BUG: Diagnostic contains: Use of org.joda.time.chrono.BuddhistChronology
+// BUG: Diagnostic contains: Use of org.joda.time.chrono
 import org.joda.time.chrono.BuddhistChronology;
 // BUG: Diagnostic contains: Use of org.joda.time.Chronology
 import org.joda.time.Chronology;
 // BUG: Diagnostic contains: Use of org.joda.time.DateMidnight
 import org.joda.time.DateMidnight;
 //tests banned package import
-// BUG: Diagnostic contains:Use of org.joda.time.tz.FixedDateTimeZone
+// BUG: Diagnostic contains: Use of org.joda.time.tz
 import org.joda.time.tz.FixedDateTimeZone;
 
 
-public class XplatClassBanPositiveCases {
+public class XplatBansPositiveCases {
 
   public void mutableDate() {
     // test constructor from banned class
@@ -173,7 +173,7 @@ public class XplatClassBanPositiveCases {
 
 
   public static void main(String[] args) {
-    XplatClassBanPositiveCases m = new XplatClassBanPositiveCases();
+    XplatBansPositiveCases m = new XplatBansPositiveCases();
 
     // tests a banned class
     // BUG: Diagnostic contains: Use of org.joda.time.DateMidnight

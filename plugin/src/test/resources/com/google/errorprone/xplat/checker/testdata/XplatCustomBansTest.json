@@ -1,0 +1,17 @@
+{
+  "classes": {
+    "java.util.HashMap": "a test being preformed."
+  },
+  "packages": {
+    "java.io": "side effects frightening Haskell users."
+  },
+  "methods": {
+    "java.util.HashSet": {
+      "contains": "sets being a surprise.",
+      "remove": "sets belonging to someone else."
+    },
+    "java.util.Random": {
+      "ints": "other number types being cooler."
+    }
+  }
+}
