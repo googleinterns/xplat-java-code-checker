@@ -15,7 +15,6 @@
 package com.google.errorprone.xplat.checker;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.Resources;
 import com.google.errorprone.CompilationTestHelper;
 import java.io.File;
 import org.junit.Before;

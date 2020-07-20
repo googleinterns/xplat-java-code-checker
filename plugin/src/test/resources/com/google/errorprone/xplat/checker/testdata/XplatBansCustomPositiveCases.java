@@ -15,11 +15,7 @@
 package com.google.errorprone.xplat.checker.testdata;
 
 import java.util.HashSet;
-// Tests custom class ban
-// BUG: Diagnostic contains: Use of java.util.HashMap has been banned due to a test being preformed.
 import java.util.HashMap;
-// Tests custom package ban
-// BUG: Diagnostic contains: Use of java.io has been banned due to side effects frightening Haskell users.
 import java.io.CharArrayReader;
 import java.util.Random;
 

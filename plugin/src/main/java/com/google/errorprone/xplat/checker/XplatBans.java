@@ -21,7 +21,6 @@ import com.google.errorprone.BugPattern;
 import com.google.errorprone.ErrorProneFlags;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
-import com.google.errorprone.bugpatterns.BugChecker.ImportTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.MethodInvocationTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.bugpatterns.BugChecker.NewClassTreeMatcher;
@@ -29,7 +28,6 @@ import com.google.errorprone.bugpatterns.BugChecker.VariableTreeMatcher;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
@@ -56,7 +54,8 @@ import org.json.JSONObject;
  * Check for usage of some Joda-Time classes and packages, which can be found in
  * resources/Xplatbans.json. These calls are banned due to their incompatibility with cross platform
  * development. Additional classes can be banned using the command line argument {@code
- * -XepOpt:XplatBans:JSON=X}, where X is the path to a JSON file containing custom bans.
+ * -XepOpt:XplatBans:JSON=X}, where X is the path to a JSON file containing custom bans. Errors can
+ * be suppressed with the {@link XplatBanSuppression} annotation.
  */
 @BugPattern(
     name = "XplatBans",
@@ -67,10 +66,11 @@ import org.json.JSONObject;
             + " and should also not be used on supported platforms. Additional bans can be configured"
             + " with the command line argument -XepOpt:XplatBans:JSON=X, where X is the path to"
             + " a JSON file containing custom bans.",
-    severity = ERROR)
+    severity = ERROR,
+    suppressionAnnotations = XplatBanSuppression.class)
 public class XplatBans extends BugChecker
-    implements MethodInvocationTreeMatcher, NewClassTreeMatcher, ImportTreeMatcher,
-    VariableTreeMatcher, MethodTreeMatcher {
+    implements MethodInvocationTreeMatcher, NewClassTreeMatcher, VariableTreeMatcher,
+    MethodTreeMatcher {
 
   private final Map<String, String> packageNames = new HashMap<>();
 
@@ -317,21 +317,6 @@ public class XplatBans extends BugChecker
         }
       }
     }
-    return Description.NO_MATCH;
-  }
-
-  @Override
-  public Description matchImport(ImportTree tree, VisitorState state) {
-    Symbol importSymbol = ASTHelpers.getSymbol(tree.getQualifiedIdentifier());
-
-    if (classNames.containsKey(importSymbol.toString())) {
-      return standardMessage(tree, importSymbol.toString(),
-          classNames.get(importSymbol.toString()));
-    } else if (packageNames.containsKey(importSymbol.packge().toString())) {
-      return standardMessage(tree, importSymbol.packge().toString(),
-          packageNames.get(importSymbol.packge().toString()));
-    }
-
     return Description.NO_MATCH;
   }
 
