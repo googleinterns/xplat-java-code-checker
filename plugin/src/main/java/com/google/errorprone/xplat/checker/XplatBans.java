@@ -56,7 +56,7 @@ import org.json.JSONObject;
  * Check for usage of some Joda-Time classes and packages, which can be found in
  * resources/Xplatbans.json. These calls are banned due to their incompatibility with cross platform
  * development. Additional classes can be banned using the command line argument {@code
- * -XepOpt:XplatClassBan:JSON=X}, where X is the path to a JSON file containing custom bans.
+ * -XepOpt:XplatBans:JSON=X}, where X is the path to a JSON file containing custom bans.
  */
 @BugPattern(
     name = "XplatBans",
@@ -64,7 +64,9 @@ import org.json.JSONObject;
     explanation =
         "The usage of several Joda-Time classes and packages are banned from cross"
             + " platform development due to incompatibilities. They are unsupported on the web"
-            + " and should also not be used on supported platforms.",
+            + " and should also not be used on supported platforms. Additional bans can be configured"
+            + " with the command line argument -XepOpt:XplatBans:JSON=X, where X is the path to"
+            + " a JSON file containing custom bans.",
     severity = ERROR)
 public class XplatBans extends BugChecker
     implements MethodInvocationTreeMatcher, NewClassTreeMatcher, ImportTreeMatcher,
@@ -77,6 +79,27 @@ public class XplatBans extends BugChecker
   private final Map<String, Map<String, String>> methodNames = new HashMap<>();
 
 
+  /**
+   * A helper function that iterates though the JSON keys and puts them inside a map.
+   *
+   * @param json The JSONObject to be iterated through.
+   * @param map  The map to be added to.
+   * @throws JSONException This function should never throw a JSONException, as the only time
+   *                       getString() is used, it is being used with keys returned from keys().
+   */
+  private void jsonToMap(JSONObject json, Map<String, String> map) throws JSONException {
+    for (Iterator it = json.keys(); it.hasNext(); ) {
+      String key = it.next().toString();
+      map.put(key, json.getString(key));
+    }
+  }
+
+  /**
+   * Given a correctly formatted JSON file, adds the bans to the respective maps.
+   *
+   * @param json     A string containing the file contents.
+   * @param fileName The name of the file to be displayed in error messages.
+   */
   private void getJsonData(String json, String fileName) {
     JSONObject obj;
 
@@ -88,29 +111,19 @@ public class XplatBans extends BugChecker
     }
 
     try {
-      JSONObject classes = obj.getJSONObject("classes");
+      jsonToMap(obj.getJSONObject("classes"), this.classNames);
 
-      for (Iterator it = classes.keys(); it.hasNext(); ) {
-        String key = it.next().toString();
-        this.classNames.put(key, classes.getString(key));
-      }
     } catch (JSONException e) {
       System.err
           .println(String.format("Missing \"classes\" top level JSON name inside '%s'.", fileName));
     }
 
     try {
-      JSONObject packages = obj.getJSONObject("packages");
+      jsonToMap(obj.getJSONObject("packages"), this.packageNames);
 
-      for (Iterator it = packages.keys(); it.hasNext(); ) {
-        String key = it.next().toString();
-
-        this.packageNames.put(key, packages.getString(key));
-      }
     } catch (JSONException e) {
-      System.err
-          .println(
-              String.format("Missing \"packages\" top level JSON name inside '%s'.", fileName));
+      System.err.println(
+          String.format("Missing \"packages\" top level JSON name inside '%s'.", fileName));
     }
 
     try {
@@ -120,12 +133,7 @@ public class XplatBans extends BugChecker
         String curClass = cont.next().toString();
         Map<String, String> localMap = new HashMap<>();
 
-        JSONObject methods = containingClasses.getJSONObject(curClass);
-
-        for (Iterator it = methods.keys(); it.hasNext(); ) {
-          String key = it.next().toString();
-          localMap.put(key, methods.getString(key));
-        }
+        jsonToMap(containingClasses.getJSONObject(curClass), localMap);
 
         this.methodNames.put(curClass, localMap);
       }
@@ -133,20 +141,22 @@ public class XplatBans extends BugChecker
       System.err
           .println(String.format("Missing \"methods\" top level JSON name inside '%s'.", fileName));
     }
-
-
   }
 
+  /**
+   * Adds bans to the maps based on the {@code Xplatbans.json} file. If the flag {@code
+   * XplatBans:JSON} is used, tries to add bans to the maps from the given file.
+   */
   public XplatBans(ErrorProneFlags flags) {
     try {
       getJsonData(Resources.toString(Resources.getResource("Xplatbans.json"), Charsets.UTF_8),
           "Xplatbans.json");
     } catch (IOException e) {
-      System.err.println("Xplatbans.json resource file for XplatClassBan checker could not"
+      System.err.println("Xplatbans.json resource file for XplatBan checker could not"
           + " be converted to a String.");
       throw new UncheckedIOException(e);
     } catch (IllegalArgumentException e) {
-      System.err.println("Xplatbans.json resource file for XplatClassBan checker could not"
+      System.err.println("Xplatbans.json resource file for XplatBan checker could not"
           + " be found.");
       throw new IllegalArgumentException(e);
     }
@@ -157,7 +167,7 @@ public class XplatBans extends BugChecker
       try {
         getJsonData(Files.readString(Paths.get(arg.get()), Charsets.UTF_8), arg.get());
       } catch (IOException e) {
-        System.err.println("JSON file argument for JodaTimeClassBan checker could not"
+        System.err.println("JSON file argument for XplatBan checker could not"
             + " be found/read. Custom bans will not be in effect.");
       }
     }
@@ -200,6 +210,12 @@ public class XplatBans extends BugChecker
         .build();
   }
 
+  /**
+   * Given a type, returns a String that removes type parameters.
+   *
+   * @param type the type that is needed for lookup in a map.
+   * @return String that contains the type without type parameters.
+   */
   private String typeToString(Type type) {
     if (type == null) {
       return "nullType";

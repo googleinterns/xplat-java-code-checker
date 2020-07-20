@@ -14,6 +14,24 @@
 
 package com.google.errorprone.xplat.checker.testdata;
 
+import java.util.HashSet;
+import java.util.Random;
+import java.math.BigInteger;
+import java.util.Map;
+
 public class XplatBansCustomNegativeCases {
+
+  public void test() {
+
+    Random rand = new Random();
+    rand.doubles();
+    rand.longs();
+    rand.nextInt();
+
+    HashSet<String> set = new HashSet<>();
+    set.add("1");
+    set.clear();
+    
+  }
 
 }

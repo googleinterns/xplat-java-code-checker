@@ -28,9 +28,11 @@ public class XplatBansCustomPositiveCases {
 
   public void test() {
 
+    // Tests custom class ban
     // BUG: Diagnostic contains: Use of java.util.HashMap has been banned due to a test being preformed.
     HashMap<String, Integer> map = new HashMap<>();
 
+    // Tests custom class ban
     // BUG: Diagnostic contains: Use of java.io has been banned due to side effects frightening Haskell users.
     CharArrayReader read = new CharArrayReader("read" .toCharArray());
 
@@ -42,17 +44,21 @@ public class XplatBansCustomPositiveCases {
 
     set.add("test");
 
+    // Tests custom method ban
     // BUG: Diagnostic contains: Use of contains() is not allowed, as java.util.HashSet has been banned due to sets being a surprise.
     set.contains("test");
 
+    // Tests custom method ban
     // BUG: Diagnostic contains: Use of remove() is not allowed, as java.util.HashSet has been banned due to sets belonging to someone else.
     set.remove("test");
 
     Random rand = new Random();
 
+    // Tests custom method ban with 2 different parameters
     // BUG: Diagnostic contains: Use of ints() is not allowed, as java.util.Random has been banned due to other number types being cooler.
     rand.ints();
 
+    // Tests custom method ban with 2 different parameters
     // BUG: Diagnostic contains: Use of ints() is not allowed, as java.util.Random has been banned due to other number types being cooler.
     rand.ints(1L);
 

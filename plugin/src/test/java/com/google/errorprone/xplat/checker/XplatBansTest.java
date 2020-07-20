@@ -15,6 +15,7 @@
 package com.google.errorprone.xplat.checker;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Resources;
 import com.google.errorprone.CompilationTestHelper;
 import java.io.File;
 import org.junit.Before;
@@ -52,8 +53,7 @@ public class XplatBansTest {
     String path = file.getAbsolutePath();
 
     compilationHelper.addSourceFile("XplatBansCustomPositiveCases.java")
-        .setArgs(ImmutableList
-            .of(String.format("-XepOpt:XplatBans:JSON=%s", path)))
+        .setArgs(ImmutableList.of(String.format("-XepOpt:XplatBans:JSON=%s", path)))
         .doTest();
   }
 
@@ -64,8 +64,7 @@ public class XplatBansTest {
     String path = file.getAbsolutePath();
 
     compilationHelper.addSourceFile("XplatBansCustomNegativeCases.java")
-        .setArgs(ImmutableList
-            .of(String.format("-XepOpt:XplatBans:JSON=%s", path)))
+        .setArgs(ImmutableList.of(String.format("-XepOpt:XplatBans:JSON=%s", path)))
         .doTest();
   }
 
