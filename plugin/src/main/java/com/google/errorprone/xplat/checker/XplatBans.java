@@ -51,21 +51,42 @@ import org.json.JSONObject;
 
 
 /**
- * Check for usage of some Joda-Time classes and packages, which can be found in
- * resources/Xplatbans.json. These calls are banned due to their incompatibility with cross platform
- * development. Additional classes can be banned using the command line argument {@code
- * -XepOpt:XplatBans:JSON=X}, where X is the path to a JSON file containing custom bans. Errors can
- * be suppressed with the {@link XplatBanSuppression} annotation.
+ * Check for usage of some classes and packages, which can be found in resources/Xplatbans.json.
+ * These calls are banned due to their incompatibility with cross platform development. Additional
+ * classes can be banned using the command line argument {@code -XepOpt:XplatBans:JSON=X}, where X
+ * is the path to a JSON file containing custom bans. Errors can be suppressed with the {@link
+ * XplatBanSuppression} annotation.
+ * <p>
+ * The JSON file should be formatted in this way:
+ * <pre>
+ * {
+ *   "classes": {
+ *     "java.util.HashMap": "a reason."
+ *   },
+ *   "packages": {
+ *     "java.io": "another reason.",
+ *     "foo.bar": "yet another reason."
+ *   },
+ *   "methods": {
+ *     "java.util.HashSet": {
+ *       "contains": "a further reason.",
+ *       "remove": ""
+ *     }
+ *   }
+ * }
+ * </pre>
+ * In each error message, the string following the ban fills in the %s in the following string:
+ * {@code "has been banned due to %s"}. If an empty string is provided, the default message will be
+ * used. The JSON file should include each top level name {@code (classes, packages, methods)}, even
+ * if they have no content.
  */
 @BugPattern(
     name = "XplatBans",
-    summary = "Bans the usage of certain Joda-Time classes and packages for cross platform use.",
+    summary = "Bans the usage of certain classes and packages for cross platform use.",
     explanation =
-        "The usage of several Joda-Time classes and packages are banned from cross"
-            + " platform development due to incompatibilities. They are unsupported on the web"
-            + " and should also not be used on supported platforms. Additional bans can be configured"
-            + " with the command line argument -XepOpt:XplatBans:JSON=X, where X is the path to"
-            + " a JSON file containing custom bans.",
+        "The usage of several classes and packages are banned from cross platform development due to"
+            + " incompatibilities. Additional bans can be configured with the command line argument"
+            + " -XepOpt:XplatBans:JSON=X, where X is the path to a JSON file containing custom bans.",
     severity = ERROR,
     suppressionAnnotations = XplatBanSuppression.class)
 public class XplatBans extends BugChecker
@@ -87,7 +108,7 @@ public class XplatBans extends BugChecker
    * @throws JSONException This function should never throw a JSONException, as the only time
    *                       getString() is used, it is being used with keys returned from keys().
    */
-  private void jsonToMap(JSONObject json, Map<String, String> map) throws JSONException {
+  private void addJsonToMap(JSONObject json, Map<String, String> map) throws JSONException {
     for (Iterator it = json.keys(); it.hasNext(); ) {
       String key = it.next().toString();
       map.put(key, json.getString(key));
@@ -107,23 +128,26 @@ public class XplatBans extends BugChecker
       obj = new JSONObject(json);
     } catch (JSONException e) {
       System.err.println(String.format("JSON file '%s' is invalid. Unable to parse.", fileName));
+      e.printStackTrace();
       return;
     }
 
     try {
-      jsonToMap(obj.getJSONObject("classes"), this.classNames);
+      addJsonToMap(obj.getJSONObject("classes"), this.classNames);
 
     } catch (JSONException e) {
       System.err
           .println(String.format("Missing \"classes\" top level JSON name inside '%s'.", fileName));
+      e.printStackTrace();
     }
 
     try {
-      jsonToMap(obj.getJSONObject("packages"), this.packageNames);
+      addJsonToMap(obj.getJSONObject("packages"), this.packageNames);
 
     } catch (JSONException e) {
       System.err.println(
           String.format("Missing \"packages\" top level JSON name inside '%s'.", fileName));
+      e.printStackTrace();
     }
 
     try {
@@ -133,13 +157,14 @@ public class XplatBans extends BugChecker
         String curClass = cont.next().toString();
         Map<String, String> localMap = new HashMap<>();
 
-        jsonToMap(containingClasses.getJSONObject(curClass), localMap);
+        addJsonToMap(containingClasses.getJSONObject(curClass), localMap);
 
         this.methodNames.put(curClass, localMap);
       }
     } catch (JSONException e) {
       System.err
           .println(String.format("Missing \"methods\" top level JSON name inside '%s'.", fileName));
+      e.printStackTrace();
     }
   }
 
@@ -169,6 +194,7 @@ public class XplatBans extends BugChecker
       } catch (IOException e) {
         System.err.println("JSON file argument for XplatBan checker could not"
             + " be found/read. Custom bans will not be in effect.");
+        e.printStackTrace();
       }
     }
   }
