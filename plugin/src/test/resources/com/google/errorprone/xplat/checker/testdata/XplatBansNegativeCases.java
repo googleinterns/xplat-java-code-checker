@@ -14,13 +14,15 @@
 
 package com.google.errorprone.xplat.checker.testdata;
 
-
+import com.google.errorprone.xplat.checker.XplatBanSuppression;
+import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
+import org.joda.time.MutableDateTime;
+import org.joda.time.tz.FixedDateTimeZone;
 
-
-public class JodaTimeClassBanNegativeCases {
+public class XplatBansNegativeCases {
 
   public class aClass {
 
@@ -63,5 +65,55 @@ public class JodaTimeClassBanNegativeCases {
     System.out.println(dt.toString());
   }
 
+  // Test annotation suppression
+  private class Illegal {
+
+    @XplatBanSuppression
+    private Chronology chrono;
+
+    @XplatBanSuppression
+    public Illegal(Chronology chrono) {
+      this.chrono = chrono;
+    }
+
+    @XplatBanSuppression
+    private Chronology returnChrono() {
+      return this.chrono;
+    }
+  }
+
+  // Test annotation suppression
+  @XplatBanSuppression
+  private class Illegal2 {
+
+    private FixedDateTimeZone time;
+
+    public Illegal2(FixedDateTimeZone time) {
+      this.time = time;
+    }
+
+    private FixedDateTimeZone returnChrono() {
+      return this.time;
+    }
+  }
+
+  // Test annotation suppression
+  @XplatBanSuppression
+  public void tzTime() {
+    FixedDateTimeZone time = new FixedDateTimeZone("1", "1", 1, 1);
+
+    time.getStandardOffset(1);
+  }
+
+  // Test annotation suppression
+  public void mutableDate() {
+
+    @XplatBanSuppression
+    MutableDateTime dateTime = new MutableDateTime();
+
+    @XplatBanSuppression
+    MutableDateTime time;
+
+  }
 
 }

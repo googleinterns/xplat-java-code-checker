@@ -1,23 +1,23 @@
 // See https://github.com/tbroyer/gradle-errorprone-plugin
 plugins {
-  id("net.ltgt.errorprone") version "1.2.0"
+    id("net.ltgt.errorprone") version "1.2.0"
 }
 
 subprojects {
-  repositories {
-    mavenCentral()
-  }
+    repositories {
+        mavenCentral()
+    }
 
-  apply plugin: 'java'
-  sourceCompatibility = 11
-  targetCompatibility = 11
+    apply plugin: 'java'
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
-  apply plugin: 'net.ltgt.errorprone'
+    apply plugin: 'net.ltgt.errorprone'
 
 
-  dependencies {
-    errorprone("com.google.errorprone:error_prone_core:latest.release")
-  }
+    dependencies {
+        errorprone("com.google.errorprone:error_prone_core:latest.release")
+    }
 
 }
 
