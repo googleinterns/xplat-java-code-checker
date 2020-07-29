@@ -37,9 +37,7 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Type;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -181,9 +179,7 @@ public class XplatBans extends BugChecker
    */
   public XplatBans(ErrorProneFlags flags) {
     try {
-      getJsonData(
-          Resources.toString(Resources.getResource("Xplatbans.json"), StandardCharsets.UTF_8),
-          "Xplatbans.json");
+      getJsonData(readResourceAsString("Xplatbans.json"), "Xplatbans.json");
     } catch (IOException e) {
       System.err.println("Xplatbans.json resource file for XplatBan checker could not"
           + " be converted to a String.");
@@ -412,15 +408,7 @@ public class XplatBans extends BugChecker
   }
 
   private String readResourceAsString(String resource) throws IOException {
-    InputStream resStream = getClass().getResourceAsStream(resource);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    int read;
-    byte[] buf = new byte[8192];
-    while ((read = resStream.read(buf)) > 0) {
-      baos.write(buf);
-    }
-    resStream.close();
-    return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    return Resources.toString(Resources.getResource(resource), StandardCharsets.UTF_8);
   }
 }
 
