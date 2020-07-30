@@ -37,10 +37,11 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Type;
-import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -49,15 +50,15 @@ import java.util.Optional;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
 /**
  * Check for usage of some classes and packages, which can be found in resources/Xplatbans.json.
  * These calls are banned due to their incompatibility with cross platform development. Additional
  * classes can be banned using the command line argument {@code -XepOpt:XplatBans:JSON=X}, where X
  * is the path to a JSON file containing custom bans. Errors can be suppressed with the {@link
  * XplatBanSuppression} annotation.
- * <p>
- * The JSON file should be formatted in this way:
+ *
+ * <p>The JSON file should be formatted in this way:
+ *
  * <pre>
  * {
  *   "classes": {
@@ -75,6 +76,7 @@ import org.json.JSONObject;
  *   }
  * }
  * </pre>
+ *
  * In each error message, the string following the ban fills in the %s in the following string:
  * {@code "has been banned due to %s"}. If an empty string is provided, the default message will be
  * used. The JSON file should include each top level name {@code (classes, packages, methods)}, even
@@ -84,14 +86,17 @@ import org.json.JSONObject;
     name = "XplatBans",
     summary = "Bans the usage of certain classes and packages for cross platform use.",
     explanation =
-        "The usage of several classes and packages are banned from cross platform development due to"
-            + " incompatibilities. Additional bans can be configured with the command line argument"
-            + " -XepOpt:XplatBans:JSON=X, where X is the path to a JSON file containing custom bans.",
+        "The usage of several classes and packages are banned from cross platform development due"
+            + " to incompatibilities. Additional bans can be configured with the command line"
+            + " argument -XepOpt:XplatBans:JSON=X, where X is the path to a JSON file containing"
+            + " custom bans.",
     severity = ERROR,
     suppressionAnnotations = XplatBanSuppression.class)
 public class XplatBans extends BugChecker
-    implements MethodInvocationTreeMatcher, NewClassTreeMatcher, VariableTreeMatcher,
-    MethodTreeMatcher {
+    implements MethodInvocationTreeMatcher,
+        NewClassTreeMatcher,
+        VariableTreeMatcher,
+        MethodTreeMatcher {
 
   private final Map<String, String> packageNames = new HashMap<>();
 
@@ -109,7 +114,7 @@ public class XplatBans extends BugChecker
    *                       getString() is used, it is being used with keys returned from keys().
    */
   private void addJsonToMap(JSONObject json, Map<String, String> map) throws JSONException {
-    for (Iterator it = json.keys(); it.hasNext(); ) {
+    for (Iterator<?> it = json.keys(); it.hasNext(); ) {
       String key = it.next().toString();
       map.put(key, json.getString(key));
     }
@@ -153,7 +158,7 @@ public class XplatBans extends BugChecker
     try {
       JSONObject containingClasses = obj.getJSONObject("methods");
 
-      for (Iterator cont = containingClasses.keys(); cont.hasNext(); ) {
+      for (Iterator<?> cont = containingClasses.keys(); cont.hasNext(); ) {
         String curClass = cont.next().toString();
         Map<String, String> localMap = new HashMap<>();
 
@@ -174,8 +179,7 @@ public class XplatBans extends BugChecker
    */
   public XplatBans(ErrorProneFlags flags) {
     try {
-      getJsonData(Resources.toString(Resources.getResource("Xplatbans.json"), Charsets.UTF_8),
-          "Xplatbans.json");
+      getJsonData(readResourceAsString("Xplatbans.json"), "Xplatbans.json");
     } catch (IOException e) {
       System.err.println("Xplatbans.json resource file for XplatBan checker could not"
           + " be converted to a String.");
@@ -186,11 +190,26 @@ public class XplatBans extends BugChecker
       throw new IllegalArgumentException(e);
     }
 
-    Optional<String> arg = flags.get("XplatBans:JSON");
+    Optional<String> arg;
 
+    arg = flags.get("XplatBans:JSONResource");
     if (arg.isPresent()) {
       try {
-        getJsonData(Files.readString(Paths.get(arg.get()), Charsets.UTF_8), arg.get());
+        String jsonDataString = readResourceAsString(arg.get());
+        getJsonData(jsonDataString, arg.get());
+      } catch (IOException e) {
+        System.err.println(
+            "JSON resource argument for XplatBan checker could not"
+                + " be found/read. Custom bans will not be in effect.");
+        e.printStackTrace();
+      }
+    }
+
+    arg = flags.get("XplatBans:JSON");
+    if (arg.isPresent()) {
+      try {
+        String jsonDataString = readFileAsString(Paths.get(arg.get()));
+        getJsonData(jsonDataString, arg.get());
       } catch (IOException e) {
         System.err.println("JSON file argument for XplatBan checker could not"
             + " be found/read. Custom bans will not be in effect.");
@@ -380,6 +399,16 @@ public class XplatBans extends BugChecker
       }
     }
     return Description.NO_MATCH;
+  }
+
+  /** A re-implementation of Files.readString() since it's not available until JDK 11. */
+  private String readFileAsString(Path path) throws IOException {
+    byte[] ba = Files.readAllBytes(path);
+    return new String(ba, StandardCharsets.UTF_8);
+  }
+
+  private String readResourceAsString(String resource) throws IOException {
+    return Resources.toString(Resources.getResource(resource), StandardCharsets.UTF_8);
   }
 }
 
