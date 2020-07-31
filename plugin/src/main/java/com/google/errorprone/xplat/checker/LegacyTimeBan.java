@@ -17,6 +17,7 @@ package com.google.errorprone.xplat.checker;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
+import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
@@ -36,6 +37,7 @@ import com.sun.tools.javac.code.Type;
  * Checks for usage of legacy time classes in Variables, Methods and Parameters. Can be overridden
  * with the @AllowLegacyTime annotation.
  */
+@AutoService(BugChecker.class)
 @BugPattern(
     name = "LegacyTimeBan",
     summary = "Java legacy time class ban - override with @AllowLegacyTime.",

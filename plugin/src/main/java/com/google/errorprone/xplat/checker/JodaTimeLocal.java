@@ -17,7 +17,7 @@ package com.google.errorprone.xplat.checker;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
-
+import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.BugPattern;
@@ -42,6 +42,7 @@ import java.util.List;
  * Bans the use of some Joda-Time constructors and methods that convert to a DateTime or use a
  * DateTimeZone. A fix is suggested that is cross platform compatible.
  */
+@AutoService(BugChecker.class)
 @BugPattern(
     name = "JodaTimeLocal",
     summary = "Bans the usage of timezoned toDateTime methods in some Joda-Time classes.",
