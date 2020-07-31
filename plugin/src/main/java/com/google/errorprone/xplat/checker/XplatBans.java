@@ -16,6 +16,7 @@ package com.google.errorprone.xplat.checker;
 
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
+import com.google.auto.service.AutoService;
 import com.google.common.io.Resources;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.ErrorProneFlags;
@@ -82,6 +83,7 @@ import org.json.JSONObject;
  * used. The JSON file should include each top level name {@code (classes, packages, methods)}, even
  * if they have no content.
  */
+@AutoService(BugChecker.class)
 @BugPattern(
     name = "XplatBans",
     summary = "Bans the usage of certain classes and packages for cross platform use.",

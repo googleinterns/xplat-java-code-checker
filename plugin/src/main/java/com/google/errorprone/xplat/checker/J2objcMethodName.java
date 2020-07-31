@@ -15,6 +15,7 @@ package com.google.errorprone.xplat.checker;
 
 import static com.google.errorprone.BugPattern.SeverityLevel.WARNING;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Splitter;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.ErrorProneFlags;
@@ -56,6 +57,7 @@ import javax.lang.model.type.TypeKind;
  * -XepOpt:J2ObjCMethodName:MethodNameLength=100} will warn against all methods that would result in
  * 100 or more characters after being translated to an Objective-C function.
  */
+@AutoService(BugChecker.class)
 @BugPattern(
     name = "J2ObjCMethodName",
     summary = "Warns against long J2ObjC translated methods.",

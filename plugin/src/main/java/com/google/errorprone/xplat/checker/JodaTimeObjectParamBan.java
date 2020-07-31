@@ -16,6 +16,7 @@ package com.google.errorprone.xplat.checker;
 
 import static com.google.errorprone.BugPattern.SeverityLevel.ERROR;
 
+import com.google.auto.service.AutoService;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
@@ -37,6 +38,7 @@ import java.util.List;
  * Bans the usage of Joda-Time methods and constructors that have an Object parameter. If the
  * parameter that is passed in is a boxed long, it is permitted.
  */
+@AutoService(BugChecker.class)
 @BugPattern(
     name = "JodaTimeObjectParamBan",
     summary = "Bans the usage of Joda-Time constructors that have an Object parameter.",

@@ -17,6 +17,7 @@ package com.google.errorprone.xplat.checker;
 
 import static com.google.errorprone.BugPattern.SeverityLevel.WARNING;
 
+import com.google.auto.service.AutoService;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
@@ -40,6 +41,7 @@ import java.util.Optional;
  * Checks for usage of ConcurrentHashMap and suggests the use of Collections.synchronizedMap.
  * ConcurrentHashMap is not well supported on iOS.
  */
+@AutoService(BugChecker.class)
 @BugPattern(
     name = "UnnecessaryConcurrentHashMap",
     summary = "Suggests the use of Collections.synchronizedMap instead of ConcurrentHashMap.",
