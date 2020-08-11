@@ -348,6 +348,10 @@ public class J2objcMethodName extends BugChecker implements MethodTreeMatcher,
     }
   }
 
+  public J2objcMethodName() {
+    this(ErrorProneFlags.empty());
+  }
+
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
     if (MATCHER.matches(tree, state)) {

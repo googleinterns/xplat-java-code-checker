@@ -38,8 +38,12 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Type;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -175,13 +179,19 @@ public class XplatBans extends BugChecker
     }
   }
 
+  public XplatBans() {
+    this(ErrorProneFlags.empty());
+  }
+
   /**
    * Adds bans to the maps based on the {@code Xplatbans.json} file. If the flag {@code
    * XplatBans:JSON} is used, tries to add bans to the maps from the given file.
    */
   public XplatBans(ErrorProneFlags flags) {
     try {
-      getJsonData(readResourceAsString("Xplatbans.json"), "Xplatbans.json");
+      // Obtain the URL of the top-level JSON file.
+      URL resource = getClass().getResource("/Xplatbans.json");
+      getJsonData(readResourceAsString(resource), "Xplatbans.json");
     } catch (IOException e) {
       System.err.println("Xplatbans.json resource file for XplatBan checker could not"
           + " be converted to a String.");
@@ -404,13 +414,33 @@ public class XplatBans extends BugChecker
   }
 
   /** A re-implementation of Files.readString() since it's not available until JDK 11. */
-  private String readFileAsString(Path path) throws IOException {
+  private static String readFileAsString(Path path) throws IOException {
     byte[] ba = Files.readAllBytes(path);
     return new String(ba, StandardCharsets.UTF_8);
   }
 
-  private String readResourceAsString(String resource) throws IOException {
+  private static String readResourceAsString(String resource) throws IOException {
     return Resources.toString(Resources.getResource(resource), StandardCharsets.UTF_8);
+  }
+
+  private static String readResourceAsString(URL url) throws IOException {
+    InputStream inputStream = null;
+
+    try {
+      URLConnection urlConn = url.openConnection();
+      urlConn.setUseCaches(false);
+      inputStream = urlConn.getInputStream();
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      byte[] buf = new byte[8192];
+      int read;
+      while ((read = inputStream.read(buf)) > 0) {
+        baos.write(buf, 0, read);
+      }
+      return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    } finally {
+      inputStream.close();
+    }
   }
 }
 
