@@ -123,6 +123,10 @@ public class JodaTimeLocal extends BugChecker implements MethodInvocationTreeMat
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
     ExpressionTree recv = ASTHelpers.getReceiver(tree);
+    if (recv == null) {
+      return Description.NO_MATCH;
+    }
+
     String recvSrc = state.getSourceForNode(recv);
     Symbol symbol = ASTHelpers.getSymbol(tree);
     List<? extends ExpressionTree> arguments = tree.getArguments();
