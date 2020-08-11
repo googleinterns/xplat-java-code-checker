@@ -14,6 +14,7 @@
 package com.google.errorprone.xplat.checker;
 
 import com.google.errorprone.CompilationTestHelper;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
