@@ -12,3 +12,56 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+package com.google.errorprone.xplat.checker.testdata;
+
+
+import com.google.errorprone.annotations.concurrent.LazyInit;
+
+public class LazyInitBanNegativeCases {
+
+  private final int x;
+  private String y;
+  @LazyInit
+  private String z;
+  private String a = "hello";
+
+  LazyInitBanNegativeCases() {
+    x = 1;
+  }
+
+  //Uses @LazyInit
+  public String lazyInitValid() {
+    if (z == null) {
+      z = new String();
+    }
+    return z;
+  }
+
+  //syncronized
+  public synchronized String lazyInitValid2() {
+    if (y == null) {
+      y = new String();
+    }
+    return y;
+  }
+
+  //syncronized inside
+  public String lazyInitValid3() {
+    synchronized (this) {
+      if (y == null) {
+        y = new String();
+      }
+      return y;
+    }
+  }
+
+
+  //local var
+  public String notLazyInit() {
+    String y = null;
+    if (y == null) {
+      y = new String();
+    }
+    return y;
+  }
+}
