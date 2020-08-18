@@ -62,6 +62,7 @@ public class LazyInitBanPositiveCases {
       // BUG: Diagnostic contains: Please swap the order of local and z in this assignment.
       local = z = new String();
     }
+    // BUG: Diagnostic contains: Please return the local variable instead of the field.
     return z;
   }
 
