@@ -291,7 +291,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
    * @return Description that describes the error or non error found
    */
   private Description statementLoop(List<? extends StatementTree> statements, Set<Name> foundIdents,
-      boolean methodSync, MethodTree tree) {
+      boolean methodSync, MethodTree tree, VisitorState state) {
 
     //true if method is nonsync variety
     boolean nonSync = false;
@@ -336,6 +336,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
             checkReturn = true;
           } else if (result == IfTreeReturn.WRONG_ASSIGNMENT_ORDER) {
             wrongAssignmentOrder = true;
+            checkReturn = true;
           }
 
         } else {
@@ -346,7 +347,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
       } else if (stmt.getKind() == Kind.SYNCHRONIZED) {
         return statementLoop(((SynchronizedTree) stmt).getBlock().getStatements(), foundIdents,
-            true, tree);
+            true, tree, state);
 
       } else if (stmt.getKind() == Kind.RETURN) {
         ExpressionTree returnTree = ((ReturnTree) stmt).getExpression();
@@ -360,12 +361,12 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
         }
 
         if (wrongAssignmentOrder) {
-          return buildDescription(wrongAssignmentTree.tree)
+          state.reportMatch(buildDescription(wrongAssignmentTree.tree)
               // TODO(lukhnos): Write more detailed explanation
               .setMessage(String.format("An error prone lazy init pattern has been detected."
                       + " Please swap the order of %s and %s in this assignment.",
                   wrongAssignmentTree.firstVar, wrongAssignmentTree.secondVar))
-              .build();
+              .build());
         }
 
         if (checkReturn && !((IdentifierTree) returnTree).getName()
@@ -399,7 +400,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
       boolean methodSync = Matchers.hasModifier(Modifier.SYNCHRONIZED).matches(tree, state);
 
-      return statementLoop(tree.getBody().getStatements(), foundIdents, methodSync, tree);
+      return statementLoop(tree.getBody().getStatements(), foundIdents, methodSync, tree, state);
     }
 
     return Description.NO_MATCH;
