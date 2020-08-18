@@ -51,7 +51,8 @@ import javax.lang.model.element.Name;
 @AutoService(BugChecker.class)
 @BugPattern(
     name = "LazyInitBan",
-    summary = "Lazy Init is an error prone pattern on mobile.",
+    // TODO(lukhnos): Write more detailed explanation and summary, describe why @LazyInit is needed
+    summary = "Lazy Init is an error prone pattern on iOS. Please do it by the book.",
     explanation =
         "TBD",
     severity = ERROR)
@@ -62,10 +63,16 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
           Matchers.not(Matchers.methodIsConstructor())
       );
 
+  /**
+   * Used by IfTreeNonSync as a return value to get needed information across.
+   */
   private enum IfTreeReturn {
     NO_MATCH, MATCH, WRONG_ASSIGNMENT_ORDER
   }
 
+  /*
+   * Holds needed information for error messages when WRONG_ASSIGNMENT_ORDER is found.
+   */
   private static class ExpressionBox {
 
     public ExpressionTree tree;
@@ -83,6 +90,13 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     }
   }
 
+  /**
+   * Checks the given field to see if it is "correct" for the lazy init pattern.
+   *
+   * @param field      symbol of field
+   * @param methodSync whether the method is synchronized
+   * @return true if the check passes
+   */
   private boolean checkFieldSymbolSync(Symbol field, boolean methodSync) {
     boolean annotation = field.getAnnotationsByType(LazyInit.class).length > 0;
     boolean is_field = field.getKind() == ElementKind.FIELD;
@@ -91,6 +105,14 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     return is_field && (((is_vol || annotation) && methodSync) || is_final);
   }
 
+  /**
+   * Checks if the given IfTree matches one of the invalid patterns.
+   *
+   * @param ifTree      if statement tree
+   * @param foundIdents the set of found identifiers
+   * @param methodSync  whether the method is synchronized
+   * @return whether a pattern matches or not
+   */
   private boolean ifTreeSync(IfTree ifTree, Set<Name> foundIdents, boolean methodSync) {
     ExpressionTree exp = ifTree.getCondition();
 
@@ -155,6 +177,12 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     return found_assignment;
   }
 
+  /**
+   * Checks the given field to see if it is "correct" for the lazy init pattern.
+   *
+   * @param field symbol of field
+   * @return true if field passes the checks
+   */
   private boolean checkFieldSymbolNonSync(Symbol field) {
     boolean annotation = field.getAnnotationsByType(LazyInit.class).length > 0;
     boolean is_field = field.getKind() == ElementKind.FIELD;
@@ -163,6 +191,16 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     return is_field && ((is_vol || annotation) || is_final);
   }
 
+  /**
+   * Checks if the given IfTree matches one of the invalid patterns, and returns an IfTreeReturn
+   * based on the pattern found.
+   *
+   * @param ifTree              if statement tree
+   * @param foundIdents         the set of found identifiers
+   * @param nonSyncIdent        the field being lazy inited
+   * @param wrongAssignmentTree holds the assignment statement needed to create a proper error
+   * @return a IfTreeReturn that represents the state of the IfTree for further processing
+   */
   private IfTreeReturn ifTreeNonSync(IfTree ifTree, Set<Name> foundIdents, Symbol nonSyncIdent,
       ExpressionBox wrongAssignmentTree) {
     ExpressionTree exp = ifTree.getCondition();
@@ -221,6 +259,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
             continue;
           }
 
+          // if the assignments are in the wrong order
           if (!(((IdentifierTree) var).getName().equals(nonSyncIdent.getSimpleName()) && foundIdents
               .contains(((IdentifierTree) nestedVar).getName()))) {
             wrongAssignmentTree.editBox(var, ((IdentifierTree) var).getName(),
@@ -232,6 +271,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
       }
     }
 
+    // result should be true if an assignment was found and the field is not configured correctly
     boolean result = foundAssignment && !checkFieldSymbolNonSync(nonSyncIdent);
 
     if (result) {
@@ -241,13 +281,26 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     }
   }
 
-
+  /**
+   * Main loop to iterate though the statements in a block and check for matched lazy init patters.
+   *
+   * @param statements  list of statements inside a block
+   * @param foundIdents set of found identifiers
+   * @param methodSync  whether the method is synchronized
+   * @param tree        matched method tree
+   * @return Description that describes the error or non error found
+   */
   private Description statementLoop(List<? extends StatementTree> statements, Set<Name> foundIdents,
-      boolean methodSync, MethodTree tree, VisitorState state) {
+      boolean methodSync, MethodTree tree) {
 
+    //true if method is nonsync variety
     boolean nonSync = false;
     Symbol nonSyncIdent = null;
+
+    //true if return needs to be checked for the local var instead of the field
     boolean checkReturn = false;
+
+    //true if the assignment order is wrong
     boolean wrongAssignmentOrder = false;
     ExpressionBox wrongAssignmentTree = new ExpressionBox();
 
@@ -293,7 +346,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
       } else if (stmt.getKind() == Kind.SYNCHRONIZED) {
         return statementLoop(((SynchronizedTree) stmt).getBlock().getStatements(), foundIdents,
-            true, tree, state);
+            true, tree);
 
       } else if (stmt.getKind() == Kind.RETURN) {
         ExpressionTree returnTree = ((ReturnTree) stmt).getExpression();
@@ -308,6 +361,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
         if (wrongAssignmentOrder) {
           return buildDescription(wrongAssignmentTree.tree)
+              // TODO(lukhnos): Write more detailed explanation
               .setMessage(String.format("An error prone lazy init pattern has been detected."
                       + " Please swap the order of %s and %s in this assignment.",
                   wrongAssignmentTree.firstVar, wrongAssignmentTree.secondVar))
@@ -319,14 +373,16 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
           return Description.NO_MATCH;
         } else if (checkReturn) {
           return buildDescription(returnTree)
+              // TODO(lukhnos): Write more detailed explanation
               .setMessage("An error prone lazy init pattern has been detected."
                   + " Please return the local variable instead of the field.")
               .build();
         }
 
         return buildDescription(tree)
+            // TODO(lukhnos): describe why @LazyInit is needed
             .setMessage(String.format("An error prone lazy init pattern has been detected."
-                    + " Please use @LazyInit on the field %s. See go/why-lazyinit for more.",
+                    + " Please use @LazyInit on the field %s.",
                 nonSync ? nonSyncIdent : ((IdentifierTree) returnTree).getName()))
             .build();
       }
@@ -343,7 +399,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
       boolean methodSync = Matchers.hasModifier(Modifier.SYNCHRONIZED).matches(tree, state);
 
-      return statementLoop(tree.getBody().getStatements(), foundIdents, methodSync, tree, state);
+      return statementLoop(tree.getBody().getStatements(), foundIdents, methodSync, tree);
     }
 
     return Description.NO_MATCH;
