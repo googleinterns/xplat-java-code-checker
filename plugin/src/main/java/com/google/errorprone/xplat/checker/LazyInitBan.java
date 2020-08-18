@@ -22,7 +22,6 @@ import com.google.errorprone.VisitorState;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
-import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
@@ -38,9 +37,12 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.StatementTree;
+import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Symbol;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -57,24 +59,40 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
   private static final Matcher<MethodTree> METHOD_MATCHER =
       Matchers.allOf(
-          Matchers.not(Matchers.methodIsConstructor()),
-          Matchers.not(Matchers.hasModifier(Modifier.SYNCHRONIZED))
+          Matchers.not(Matchers.methodIsConstructor())
       );
 
-  private boolean checkFieldSymbol(Symbol field) {
-    boolean annotation = field.getAnnotationsByType(LazyInit.class).length == 0;
-    boolean is_field = field.getKind() == ElementKind.FIELD;
-    boolean not_final = !field.getModifiers().contains(Modifier.FINAL);
-    boolean not_local = !field.isLocal();
-    return annotation && is_field && not_final && not_local;
+  private enum IfTreeReturn {
+    NO_MATCH, MATCH, WRONG_ASSIGNMENT_ORDER
   }
 
-  private boolean checkIfTree(IfTree ifTree, VisitorState state, Set<Name> foundIdents) {
-    ExpressionTree exp = ifTree.getCondition();
+  private static class ExpressionBox {
 
-    if (Matchers.inSynchronized().matches(exp, state)) {
-      return false;
+    public ExpressionTree tree;
+    public Name firstVar;
+    public Name secondVar;
+
+    ExpressionBox() {
+
     }
+
+    public void editBox(ExpressionTree tree, Name firstVar, Name secondVar) {
+      this.tree = tree;
+      this.firstVar = firstVar;
+      this.secondVar = secondVar;
+    }
+  }
+
+  private boolean checkFieldSymbolSync(Symbol field, boolean methodSync) {
+    boolean annotation = field.getAnnotationsByType(LazyInit.class).length > 0;
+    boolean is_field = field.getKind() == ElementKind.FIELD;
+    boolean is_final = field.getModifiers().contains(Modifier.FINAL);
+    boolean is_vol = field.getModifiers().contains(Modifier.VOLATILE);
+    return is_field && (((is_vol || annotation) && methodSync) || is_final);
+  }
+
+  private boolean ifTreeSync(IfTree ifTree, Set<Name> foundIdents, boolean methodSync) {
+    ExpressionTree exp = ifTree.getCondition();
 
     if (exp.getKind() != Kind.PARENTHESIZED) {
       return false;
@@ -98,10 +116,10 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
       return false;
     }
 
-    Symbol fieldSymbol = ASTHelpers.getSymbol(left).location().enclClass().members().findFirst(
+    Symbol fieldSymbol = ASTHelpers.getSymbol(left).enclClass().members().findFirst(
         (com.sun.tools.javac.util.Name) ((IdentifierTree) left).getName());
 
-    if (fieldSymbol == null || !checkFieldSymbol(fieldSymbol)) {
+    if (fieldSymbol == null || checkFieldSymbolSync(fieldSymbol, methodSync)) {
       return false;
     }
 
@@ -137,6 +155,185 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     return found_assignment;
   }
 
+  private boolean checkFieldSymbolNonSync(Symbol field) {
+    boolean annotation = field.getAnnotationsByType(LazyInit.class).length > 0;
+    boolean is_field = field.getKind() == ElementKind.FIELD;
+    boolean is_final = field.getModifiers().contains(Modifier.FINAL);
+    boolean is_vol = field.getModifiers().contains(Modifier.VOLATILE);
+    return is_field && ((is_vol || annotation) || is_final);
+  }
+
+  private IfTreeReturn ifTreeNonSync(IfTree ifTree, Set<Name> foundIdents, Symbol nonSyncIdent,
+      ExpressionBox wrongAssignmentTree) {
+    ExpressionTree exp = ifTree.getCondition();
+
+    if (exp.getKind() != Kind.PARENTHESIZED) {
+      return IfTreeReturn.NO_MATCH;
+    }
+
+    exp = ((ParenthesizedTree) exp).getExpression();
+
+    if (exp.getKind() != Kind.EQUAL_TO) {
+      return IfTreeReturn.NO_MATCH;
+    }
+
+    ExpressionTree left = ((BinaryTree) exp).getLeftOperand();
+
+    ExpressionTree right = ((BinaryTree) exp).getRightOperand();
+
+    if (right.getKind() != Kind.NULL_LITERAL || left.getKind() != Kind.IDENTIFIER) {
+      return IfTreeReturn.NO_MATCH;
+    }
+
+    if (!foundIdents.contains(((IdentifierTree) left).getName())) {
+      return IfTreeReturn.NO_MATCH;
+    }
+
+    StatementTree tree = ifTree.getThenStatement();
+
+    if (tree.getKind() != Kind.BLOCK) {
+      return IfTreeReturn.NO_MATCH;
+    }
+
+    boolean foundAssignment = false;
+
+    for (StatementTree stmt : ((BlockTree) tree).getStatements()) {
+      if (stmt.getKind() == Kind.EXPRESSION_STATEMENT) {
+        ExpressionTree exp_stmt = ((ExpressionStatementTree) stmt).getExpression();
+
+        if (exp_stmt.getKind() == Kind.ASSIGNMENT) {
+          ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
+
+          if (var.getKind() != Kind.IDENTIFIER) {
+            continue;
+          }
+
+          ExpressionTree nested = ((AssignmentTree) exp_stmt).getExpression();
+
+          if (nested.getKind() != Kind.ASSIGNMENT) {
+            continue;
+          }
+
+          ExpressionTree nestedVar = ((AssignmentTree) ((AssignmentTree) exp_stmt).getExpression())
+              .getVariable();
+
+          if (nestedVar.getKind() != Kind.IDENTIFIER) {
+            continue;
+          }
+
+          if (!(((IdentifierTree) var).getName().equals(nonSyncIdent.getSimpleName()) && foundIdents
+              .contains(((IdentifierTree) nestedVar).getName()))) {
+            wrongAssignmentTree.editBox(var, ((IdentifierTree) var).getName(),
+                ((IdentifierTree) nestedVar).getName());
+            return IfTreeReturn.WRONG_ASSIGNMENT_ORDER;
+          }
+          foundAssignment = true;
+        }
+      }
+    }
+
+    boolean result = foundAssignment && !checkFieldSymbolNonSync(nonSyncIdent);
+
+    if (result) {
+      return IfTreeReturn.MATCH;
+    } else {
+      return IfTreeReturn.NO_MATCH;
+    }
+  }
+
+
+  private Description statementLoop(List<? extends StatementTree> statements, Set<Name> foundIdents,
+      boolean methodSync, MethodTree tree, VisitorState state) {
+
+    boolean nonSync = false;
+    Symbol nonSyncIdent = null;
+    boolean checkReturn = false;
+    boolean wrongAssignmentOrder = false;
+    ExpressionBox wrongAssignmentTree = new ExpressionBox();
+
+    for (StatementTree stmt : statements) {
+      if (stmt.getKind() == Kind.VARIABLE) {
+
+        VariableTree var = ((VariableTree) stmt);
+
+        if (var.getInitializer().getKind() != Kind.IDENTIFIER) {
+          return Description.NO_MATCH;
+        }
+
+        Name name = ((IdentifierTree) var.getInitializer()).getName();
+
+        Symbol fieldSymbol = ASTHelpers.getSymbol(var).enclClass().members().findFirst(
+            (com.sun.tools.javac.util.Name) name);
+
+        if (fieldSymbol.isLocal()) {
+          return Description.NO_MATCH;
+        }
+
+        foundIdents.add(name);
+        foundIdents.add(var.getName());
+        nonSyncIdent = fieldSymbol;
+        nonSync = true;
+
+      } else if (stmt.getKind() == Kind.IF) {
+
+        if (nonSync) {
+          IfTreeReturn result = ifTreeNonSync((IfTree) stmt, foundIdents, nonSyncIdent,
+              wrongAssignmentTree);
+          if (result == IfTreeReturn.NO_MATCH) {
+            checkReturn = true;
+          } else if (result == IfTreeReturn.WRONG_ASSIGNMENT_ORDER) {
+            wrongAssignmentOrder = true;
+          }
+
+        } else {
+          if (!ifTreeSync((IfTree) stmt, foundIdents, methodSync)) {
+            return Description.NO_MATCH;
+          }
+        }
+
+      } else if (stmt.getKind() == Kind.SYNCHRONIZED) {
+        return statementLoop(((SynchronizedTree) stmt).getBlock().getStatements(), foundIdents,
+            true, tree, state);
+
+      } else if (stmt.getKind() == Kind.RETURN) {
+        ExpressionTree returnTree = ((ReturnTree) stmt).getExpression();
+
+        if (returnTree.getKind() != Kind.IDENTIFIER) {
+          return Description.NO_MATCH;
+        }
+
+        if (!foundIdents.contains(((IdentifierTree) returnTree).getName())) {
+          return Description.NO_MATCH;
+        }
+
+        if (wrongAssignmentOrder) {
+          return buildDescription(wrongAssignmentTree.tree)
+              .setMessage(String.format("An error prone lazy init pattern has been detected."
+                      + " Please swap the order of %s and %s in this assignment.",
+                  wrongAssignmentTree.firstVar, wrongAssignmentTree.secondVar))
+              .build();
+        }
+
+        if (checkReturn && !((IdentifierTree) returnTree).getName()
+            .equals(nonSyncIdent.getSimpleName())) {
+          return Description.NO_MATCH;
+        } else if (checkReturn) {
+          return buildDescription(returnTree)
+              .setMessage("An error prone lazy init pattern has been detected."
+                  + " Please return the local variable instead of the field.")
+              .build();
+        }
+
+        return buildDescription(tree)
+            .setMessage(String.format("An error prone lazy init pattern has been detected."
+                    + " Please use @LazyInit on the field %s. See go/why-lazyinit for more.",
+                nonSync ? nonSyncIdent : ((IdentifierTree) returnTree).getName()))
+            .build();
+      }
+    }
+    return Description.NO_MATCH;
+  }
+
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
 
@@ -144,32 +341,9 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
       Set<Name> foundIdents = new HashSet<>();
 
-      for (StatementTree stmt : tree.getBody().getStatements()) {
-        if (stmt.getKind() == Kind.IF) {
+      boolean methodSync = Matchers.hasModifier(Modifier.SYNCHRONIZED).matches(tree, state);
 
-          if (!checkIfTree((IfTree) stmt, state, foundIdents)) {
-            return Description.NO_MATCH;
-          }
-
-        } else if (stmt.getKind() == Kind.RETURN) {
-          ExpressionTree returnTree = ((ReturnTree) stmt).getExpression();
-
-          if (returnTree.getKind() != Kind.IDENTIFIER) {
-            return Description.NO_MATCH;
-          }
-
-          if (!foundIdents.contains(((IdentifierTree) returnTree).getName())) {
-            return Description.NO_MATCH;
-          }
-
-          return buildDescription(tree)
-              .setMessage(String.format("An error prone lazy init pattern has been detected."
-                      + " Please use @LazyInit on the field %s. See go/why-lazyinit for more.",
-                  ((IdentifierTree) returnTree).getName()))
-              .build();
-        }
-      }
-
+      return statementLoop(tree.getBody().getStatements(), foundIdents, methodSync, tree, state);
     }
 
     return Description.NO_MATCH;
