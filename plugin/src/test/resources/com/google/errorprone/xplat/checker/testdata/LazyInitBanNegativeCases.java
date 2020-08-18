@@ -15,38 +15,38 @@
 package com.google.errorprone.xplat.checker.testdata;
 
 
+import autovalue.shaded.com.google$.errorprone.annotations.concurrent.$LazyInit;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 
 public class LazyInitBanNegativeCases {
 
   private final int x;
-  private String y;
+  private volatile String y;
   @LazyInit
   private String z;
+
+  private String zz;
+
   private String a = "hello";
 
-  LazyInitBanNegativeCases() {
-    x = 1;
-  }
-
-  //Uses @LazyInit
-  public String lazyInitValid() {
-    if (z == null) {
-      z = new String();
-    }
-    return z;
-  }
-
-  //syncronized
-  public synchronized String lazyInitValid2() {
+  // syncronized with volatile
+  public synchronized String lazyInitValid() {
     if (y == null) {
       y = new String();
     }
     return y;
   }
 
+  // syncronized with @LazyInit
+  public synchronized String lazyInitValid1() {
+    if (z == null) {
+      z = new String();
+    }
+    return z;
+  }
+
   //syncronized inside
-  public String lazyInitValid3() {
+  public String lazyInitValid2() {
     synchronized (this) {
       if (y == null) {
         y = new String();
@@ -55,8 +55,43 @@ public class LazyInitBanNegativeCases {
     }
   }
 
+  //syncronized inside
+  public String lazyInitValid3() {
+    synchronized (this) {
+      if (z == null) {
+        z = new String();
+      }
+      return z;
+    }
+  }
 
-  //local var
+  // non-sync version
+  public String lazyInitValid4() {
+    String local = y;
+    if (local == null) {
+      y = local = new String();
+    }
+    return local;
+  }
+
+  // non-sync version
+  public String lazyInitValid5() {
+    String local = z;
+    if (local == null) {
+      z = local = new String();
+    }
+    return local;
+  }
+  
+  // constructor - not checked
+  LazyInitBanNegativeCases() {
+    if (y == null) {
+      y = new String();
+    }
+    x = 1;
+  }
+
+  // local var - not a lazy init
   public String notLazyInit() {
     String y = null;
     if (y == null) {
