@@ -85,4 +85,19 @@ public class LazyInitBanPositiveCases {
     return z;
   }
 
+  // BUG: Diagnostic contains: An error prone lazy init pattern has been detected.
+  public String lazyInit7() {
+    String local = y;
+    if (local == null)
+      y = local = new String();
+    return y;
+  }
+
+  // BUG: Diagnostic contains: An error prone lazy init pattern has been detected.
+  public String lazyInit8() {
+    if (y == null)
+      y = new String();
+    return y;
+  }
+
 }
