@@ -58,7 +58,7 @@ import javax.lang.model.element.Name;
     severity = ERROR)
 public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
-  private static final Matcher<MethodTree> METHOD_MATCHER =
+  private static final Matcher<MethodTree> METHODS_EXCEPT_CONSTURCTOR_MATCHER =
       Matchers.allOf(
           Matchers.not(Matchers.methodIsConstructor())
       );
@@ -78,10 +78,6 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
     public ExpressionTree tree;
     public Name firstVar;
     public Name secondVar;
-
-    ExpressionBox() {
-
-    }
 
     public void editBox(ExpressionTree tree, Name firstVar, Name secondVar) {
       this.tree = tree;
@@ -147,31 +143,49 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
     StatementTree tree = ifTree.getThenStatement();
 
-    if (tree.getKind() != Kind.BLOCK) {
-      return false;
-    }
-
     boolean found_assignment = false;
 
-    for (StatementTree stmt : ((BlockTree) tree).getStatements()) {
-      if (stmt.getKind() == Kind.EXPRESSION_STATEMENT) {
+    if (tree.getKind() == Kind.EXPRESSION_STATEMENT) {
+      ExpressionTree exp_stmt = ((ExpressionStatementTree) tree).getExpression();
+
+      if (exp_stmt.getKind() != Kind.ASSIGNMENT) {
+        return false;
+      }
+      ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
+
+      if (var.getKind() != Kind.IDENTIFIER) {
+        return false;
+      }
+
+      if (((IdentifierTree) var).getName().equals(((IdentifierTree) left).getName())) {
+        found_assignment = true;
+        foundIdents.add(((IdentifierTree) var).getName());
+      }
+    } else if (tree.getKind() == Kind.BLOCK) {
+
+      for (StatementTree stmt : ((BlockTree) tree).getStatements()) {
+        if (stmt.getKind() != Kind.EXPRESSION_STATEMENT) {
+          continue;
+        }
         ExpressionTree exp_stmt = ((ExpressionStatementTree) stmt).getExpression();
 
-        if (exp_stmt.getKind() == Kind.ASSIGNMENT) {
-          ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
+        if (exp_stmt.getKind() != Kind.ASSIGNMENT) {
+          continue;
+        }
+        ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
 
-          if (var.getKind() != Kind.IDENTIFIER) {
-            continue;
-          }
+        if (var.getKind() != Kind.IDENTIFIER) {
+          continue;
+        }
 
-          if (((IdentifierTree) var).getName().equals(((IdentifierTree) left).getName())) {
-            found_assignment = true;
-            foundIdents.add(((IdentifierTree) var).getName());
-            break;
-          }
-
+        if (((IdentifierTree) var).getName().equals(((IdentifierTree) left).getName())) {
+          found_assignment = true;
+          foundIdents.add(((IdentifierTree) var).getName());
+          break;
         }
       }
+    } else {
+      return false;
     }
 
     return found_assignment;
@@ -229,46 +243,87 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
 
     StatementTree tree = ifTree.getThenStatement();
 
-    if (tree.getKind() != Kind.BLOCK) {
-      return IfTreeReturn.NO_MATCH;
-    }
-
     boolean foundAssignment = false;
 
-    for (StatementTree stmt : ((BlockTree) tree).getStatements()) {
-      if (stmt.getKind() == Kind.EXPRESSION_STATEMENT) {
+    if (tree.getKind() == Kind.EXPRESSION_STATEMENT) {
+      ExpressionTree exp_stmt = ((ExpressionStatementTree) tree).getExpression();
+
+      if (exp_stmt.getKind() != Kind.ASSIGNMENT) {
+        return IfTreeReturn.NO_MATCH;
+      }
+      ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
+
+      if (var.getKind() != Kind.IDENTIFIER) {
+        return IfTreeReturn.NO_MATCH;
+      }
+
+      ExpressionTree nested = ((AssignmentTree) exp_stmt).getExpression();
+
+      if (nested.getKind() != Kind.ASSIGNMENT) {
+        return IfTreeReturn.NO_MATCH;
+      }
+
+      ExpressionTree nestedVar = ((AssignmentTree) ((AssignmentTree) exp_stmt).getExpression())
+          .getVariable();
+
+      if (nestedVar.getKind() != Kind.IDENTIFIER) {
+        return IfTreeReturn.NO_MATCH;
+      }
+
+      // if the assignments are in the wrong order
+      if (!(((IdentifierTree) var).getName().equals(nonSyncIdent.getSimpleName()) && foundIdents
+          .contains(((IdentifierTree) nestedVar).getName()))) {
+        wrongAssignmentTree.editBox(var, ((IdentifierTree) var).getName(),
+            ((IdentifierTree) nestedVar).getName());
+        return IfTreeReturn.WRONG_ASSIGNMENT_ORDER;
+      }
+      foundAssignment = true;
+
+    } else if (tree.getKind() == Kind.BLOCK) {
+
+      for (StatementTree stmt : ((BlockTree) tree).getStatements()) {
+
+        if (stmt.getKind() != Kind.EXPRESSION_STATEMENT) {
+          continue;
+        }
+
         ExpressionTree exp_stmt = ((ExpressionStatementTree) stmt).getExpression();
 
-        if (exp_stmt.getKind() == Kind.ASSIGNMENT) {
-          ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
-
-          if (var.getKind() != Kind.IDENTIFIER) {
-            continue;
-          }
-
-          ExpressionTree nested = ((AssignmentTree) exp_stmt).getExpression();
-
-          if (nested.getKind() != Kind.ASSIGNMENT) {
-            continue;
-          }
-
-          ExpressionTree nestedVar = ((AssignmentTree) ((AssignmentTree) exp_stmt).getExpression())
-              .getVariable();
-
-          if (nestedVar.getKind() != Kind.IDENTIFIER) {
-            continue;
-          }
-
-          // if the assignments are in the wrong order
-          if (!(((IdentifierTree) var).getName().equals(nonSyncIdent.getSimpleName()) && foundIdents
-              .contains(((IdentifierTree) nestedVar).getName()))) {
-            wrongAssignmentTree.editBox(var, ((IdentifierTree) var).getName(),
-                ((IdentifierTree) nestedVar).getName());
-            return IfTreeReturn.WRONG_ASSIGNMENT_ORDER;
-          }
-          foundAssignment = true;
+        if (exp_stmt.getKind() != Kind.ASSIGNMENT) {
+          continue;
         }
+        ExpressionTree var = ((AssignmentTree) exp_stmt).getVariable();
+
+        if (var.getKind() != Kind.IDENTIFIER) {
+          continue;
+        }
+
+        ExpressionTree nested = ((AssignmentTree) exp_stmt).getExpression();
+
+        if (nested.getKind() != Kind.ASSIGNMENT) {
+          continue;
+        }
+
+        ExpressionTree nestedVar = ((AssignmentTree) ((AssignmentTree) exp_stmt)
+            .getExpression())
+            .getVariable();
+
+        if (nestedVar.getKind() != Kind.IDENTIFIER) {
+          continue;
+        }
+
+        // if the assignments are in the wrong order
+        if (!(((IdentifierTree) var).getName().equals(nonSyncIdent.getSimpleName())
+            && foundIdents
+            .contains(((IdentifierTree) nestedVar).getName()))) {
+          wrongAssignmentTree.editBox(var, ((IdentifierTree) var).getName(),
+              ((IdentifierTree) nestedVar).getName());
+          return IfTreeReturn.WRONG_ASSIGNMENT_ORDER;
+        }
+        foundAssignment = true;
       }
+    } else {
+      return IfTreeReturn.NO_MATCH;
     }
 
     // result should be true if an assignment was found and the field is not configured correctly
@@ -394,7 +449,7 @@ public class LazyInitBan extends BugChecker implements MethodTreeMatcher {
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
 
-    if (METHOD_MATCHER.matches(tree, state)) {
+    if (METHODS_EXCEPT_CONSTURCTOR_MATCHER.matches(tree, state)) {
 
       Set<Name> foundIdents = new HashSet<>();
 
