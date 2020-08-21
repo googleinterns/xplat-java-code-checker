@@ -15,7 +15,6 @@
 package com.google.errorprone.xplat.checker.testdata;
 
 
-import autovalue.shaded.com.google$.errorprone.annotations.concurrent.$LazyInit;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 
 public class LazyInitBanNegativeCases {
