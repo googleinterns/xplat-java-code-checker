@@ -100,4 +100,12 @@ public class LazyInitBanPositiveCases {
     return y;
   }
 
+  // BUG: Diagnostic contains: Please synchronize this method.
+  public String lazyInit9() {
+    if (z == null) {
+      z = new String();
+    }
+    return z;
+  }
+
 }
